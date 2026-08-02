@@ -84,6 +84,30 @@
   .callout.result { border-left-color: var(--accent-2); }
   .callout.result .label { color: var(--accent-2); }
 
+  /* domain background, shown in both reading modes because knowing how
+     airlines work is orthogonal to knowing how software works */
+  .domain { background: rgba(88,166,255,0.06); border: 1px solid rgba(88,166,255,0.22);
+            border-radius: 8px; padding: 14px 18px; margin: 0 0 22px; max-width: 880px; }
+  .domain .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
+                   color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  .domain p { margin: 0 0 8px; color: var(--ink-dim); font-size: 14px; }
+  .domain p:last-child { margin-bottom: 0; }
+  .domain dl { margin: 10px 0 0; display: grid; grid-template-columns: max-content 1fr;
+               gap: 6px 16px; font-size: 13.5px; }
+  .domain dt { color: var(--ink); font-weight: 600; }
+  .domain dd { margin: 0; color: var(--ink-dim); }
+
+  .primer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+  .primer-card { background: var(--panel); border: 1px solid var(--line);
+                 border-radius: 8px; padding: 16px 18px; }
+  .primer-card h4 { margin: 0 0 8px; font-size: 15px; color: var(--accent-2); }
+  .primer-card p { margin: 0 0 8px; font-size: 13.5px; color: var(--ink-dim); }
+  .primer-card p:last-child { margin-bottom: 0; }
+
+  .gloss-group { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+                 color: var(--accent); font-weight: 700; margin: 26px 0 2px;
+                 grid-column: 1 / -1; }
+
   .story { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0 8px; }
   .story-card { background: var(--panel); border: 1px solid var(--line);
                 border-radius: 8px; padding: 16px; }
@@ -267,7 +291,11 @@
   footer a { margin-right: 18px; }
 
   @media (max-width: 980px) {
-    .grid-2, .grid-3, .stats, #rule-toggles, .story, .glossary { grid-template-columns: 1fr; display: block; }
+    .grid-2, .grid-3, .stats, #rule-toggles, .story, .glossary,
+    .primer { grid-template-columns: 1fr; display: block; }
+    .primer .primer-card { margin-bottom: 10px; }
+    .domain dl { display: block; }
+    .domain dt { margin-top: 8px; }
     .stats .stat, .story .story-card { margin-bottom: 10px; }
     .grid-2 > *, .grid-3 > * { margin-bottom: 16px; }
     h1 { font-size: 30px; }
@@ -354,6 +382,128 @@
   </div>
 </header>
 
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier">Background</span>
+      What these rules are actually checking
+    </h2>
+    <p class="sub">
+      The examples on this page are crew rostering rules. If that is not your
+      field, this is everything you need to follow the rest of the page. If it
+      is, skip to the next section.
+    </p>
+
+    <div class="domain">
+      <div class="label">The job in one paragraph</div>
+      <p>
+        An airline cannot simply put whoever is available on a flight. Every
+        assignment has to satisfy a stack of law and company policy: the crew
+        member must be rested enough, must not have flown too much recently,
+        must hold the right licences and qualifications for that aircraft and
+        that airport, and the people rostered alongside them have to add up to a
+        legal crew. Getting it wrong is a safety issue and a regulatory one.
+      </p>
+      <p>
+        The checks fall into three families, and the example ruleset has all
+        three because each one stresses the software differently.
+      </p>
+    </div>
+
+    <div class="primer">
+      <div class="primer-card">
+        <h4>Fatigue and duty limits</h4>
+        <p>
+          How long somebody may work, and how much rest they need first. The
+          limit is not a single number: it shrinks with the number of take-offs
+          and landings, shrinks again if the crew member has not adjusted to the
+          local time zone, and stretches if an extra pilot is carried so people
+          can sleep in flight.
+        </p>
+        <p>
+          These are the rules with real arithmetic, and the ones where several
+          regulations compete to set the same limit.
+        </p>
+      </div>
+      <div class="primer-card">
+        <h4>Qualifications and paperwork</h4>
+        <p>
+          Licences, ratings, medicals and checks, all of which expire. A pilot
+          rated on one aircraft type cannot fly another. Long overwater routes,
+          landing in fog, and difficult airports each need a separate
+          endorsement.
+        </p>
+        <p>
+          Individually trivial, but there are hundreds of them, and they are the
+          rules the business changes most often.
+        </p>
+      </div>
+      <div class="primer-card">
+        <h4>Who else is on board</h4>
+        <p>
+          Some rules are not about one person at all. There must be enough cabin
+          crew to evacuate the aircraft. Two very inexperienced pilots must not
+          be paired. A trainee needs a qualified supervisor in the other seat.
+        </p>
+        <p>
+          These need information about everybody on the flight, which is exactly
+          what most systems find hardest to supply.
+        </p>
+      </div>
+    </div>
+
+    <div class="domain" style="margin-top:22px">
+      <div class="label">The words that keep coming up</div>
+      <dl>
+        <dt><abbr class="term" title="One take-off and one landing.">Sector</abbr></dt>
+        <dd>One take-off and landing. A day with four sectors is four separate flights, each with its own turnaround.</dd>
+
+        <dt>Flight duty period</dt>
+        <dd>The whole working stretch, from reporting for work to the end of the last flight. Longer than time in the air, because it includes briefing, turnarounds and waiting.</dd>
+
+        <dt>Block hours</dt>
+        <dd>Roughly, time in the air. Regulators cap it over rolling windows: 28 days and a year.</dd>
+
+        <dt>Acclimatised</dt>
+        <dd>Adjusted to local time. Somebody who has just crossed several time zones is working against their body clock, so their permitted duty is shorter.</dd>
+
+        <dt>Rest</dt>
+        <dd>The protected time off before reporting for the next duty. There is a legal minimum.</dd>
+
+        <dt>Standby</dt>
+        <dd>On call, waiting to be given a flight. Part of it counts toward the duty limit even though no flying has happened.</dd>
+
+        <dt>Augmented crew</dt>
+        <dd>An extra pilot carried so that pilots can take turns resting in flight. This is what allows a longer duty.</dd>
+
+        <dt>Rank</dt>
+        <dd><strong>CP</strong> captain, <strong>FO</strong> first officer (the co-pilot), <strong>SCC</strong> senior cabin crew member, <strong>CC</strong> cabin crew.</dd>
+
+        <dt>Type rating</dt>
+        <dd>A licence endorsement for one specific aircraft type. An A320 rating does not let you fly a B787.</dd>
+
+        <dt>Hours on type</dt>
+        <dd>Experience on that particular aircraft, which is not the same as total career hours. A very experienced pilot can be new to a type.</dd>
+
+        <dt>Line training</dt>
+        <dd>A newly qualified pilot flying real passenger flights under supervision. It requires a specifically qualified training captain in the other seat.</dd>
+
+        <dt><abbr class="term" title="Extended range twin-engine operations.">ETOPS</abbr></dt>
+        <dd>Routes where a two-engine aircraft is a long way from any airport it could divert to. Crew need a separate qualification.</dd>
+
+        <dt><abbr class="term" title="Low visibility operations.">LVO</abbr></dt>
+        <dd>Landing in poor visibility using more demanding procedures. Another separate qualification.</dd>
+
+        <dt>Aerodrome category</dt>
+        <dd>How demanding an airport is to fly into. Category C is the hardest, usually terrain or a short runway, and needs extra briefing or experience.</dd>
+
+        <dt>Roster</dt>
+        <dd>The published schedule of who works which duties. A <em>planner</em> is the person who builds it.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
 <section class="plain-only">
   <div class="wrap">
     <h2>One decision, start to finish</h2>
@@ -365,8 +515,9 @@
     <div class="story">
       <div class="story-card">
         <div class="story-step">Step 1</div>
-        <p>A planner puts Captain Okonjo on flight ZQ4207 tomorrow morning. Five sectors,
-          a long day, and she has not adjusted to the local time zone yet.</p>
+        <p>A planner puts Captain Okonjo on flight ZQ4207 tomorrow morning. Five
+          take-offs and landings, a fourteen hour day, and she flew in from another
+          time zone yesterday so her body clock has not caught up.</p>
       </div>
       <div class="story-card problem">
         <div class="story-step">Step 2 &middot; problem</div>
@@ -376,8 +527,9 @@
       </div>
       <div class="story-card">
         <div class="story-step">Step 3</div>
-        <p>The rules answer. In this case: not legal. The duty is 14 and a half hours
-          and the most she is allowed today is 11.</p>
+        <p>The rules answer: not legal. The day would run 14 and a half hours, and
+          between the five sectors and the time zone she is only allowed 11. She needs
+          a different flight, or the flight needs a different captain.</p>
       </div>
       <div class="story-card problem">
         <div class="story-step">Step 4 &middot; problem</div>
@@ -521,6 +673,24 @@
       with a resolver that returns nothing, which is the same walk that evaluates them.
     </p>
 
+    <div class="domain">
+      <div class="label">What is in the message</div>
+      <p>
+        For one assignment, the rostering system sends four things. The
+        <strong>crew member's record</strong>: rank, licences and ratings, hours
+        flown in the last 28 days and the last year, when they last rested.
+        The <strong>duty</strong>: when it starts and ends, how many sectors, whether
+        the crew member is acclimatised. The <strong>flight</strong>: aircraft type,
+        departure and arrival, how demanding the destination is. And the
+        <strong>roster</strong>: everyone else working that flight.
+      </p>
+      <p>
+        A real crew record has hundreds of fields on it, because it is the same
+        record used for payroll, training and HR. Almost none of that is relevant
+        to whether somebody may fly tomorrow, but it all travels anyway.
+      </p>
+    </div>
+
     <div class="controls">
       <div class="control">
         <label for="contract-client">airline</label>
@@ -556,9 +726,11 @@
     <div class="grid-2">
       <div class="panel">
         <h3 style="margin-top:0">Rules in play</h3>
-        <p class="muted plain-only" style="font-size:12.5px;margin-top:-4px">
-          Untick any rule to see the list of needed facts shrink. Green rules are the
-          ones that need something about every crew member on the flight.
+        <p class="muted" style="font-size:12.5px;margin-top:-4px">
+          <strong>FTL</strong> rules are fatigue and duty limits, <strong>QUAL</strong>
+          rules are licences and paperwork, <strong>CREW</strong> rules are about the
+          whole crew rather than one person. Untick any of them to see the list of
+          needed facts shrink. Hover a rule for what it does.
         </p>
         <div id="rule-toggles"></div>
       </div>
@@ -632,6 +804,24 @@
       below is the engine's own record: what was considered, what was skipped and why,
       which fields each rule looked at, and what it concluded.
     </p>
+
+    <div class="domain">
+      <div class="label">How to read the result</div>
+      <p>
+        A <strong>hard</strong> finding means the assignment is not legal and the
+        planner cannot publish it. A <strong>soft</strong> one means it is legal but
+        somebody should look: a tight margin, an unusual pairing, something that
+        would become a problem if the day slips. Both matter, and treating them
+        the same is how planners end up ignoring the system.
+      </p>
+      <p>
+        The <strong>working figures</strong> are the limits the rules calculate before
+        they can check anything. The permitted duty length is not a constant; it
+        is derived from the sector count, the acclimatisation state and whether an
+        extra pilot is carried. Several rules propose a value and the strictest
+        one wins.
+      </p>
+    </div>
 
     <div class="controls">
       <div class="control">
@@ -829,6 +1019,26 @@
       report finds all three and names the rule responsible for each.
     </p>
 
+    <div class="domain">
+      <div class="label">What the three planted faults mean</div>
+      <p>
+        <strong>A flat duty limit.</strong> The stand-in allows the same duty length
+        regardless of how many take-offs and landings there are. Real regulation
+        shortens the day as sectors pile up, because that is where the workload
+        is. So the old engine lets through long multi-sector days it should not.
+      </p>
+      <p>
+        <strong>A running total that trips early.</strong> The 28 day flying hours
+        check fires an hour before the actual limit. Harmless looking, and it has
+        been quietly refusing legal assignments for years.
+      </p>
+      <p>
+        <strong>A rule that was never built.</strong> The requirement that a trainee
+        pilot has a qualified training captain alongside them exists in the
+        specification and not in the code.
+      </p>
+    </div>
+
     <div class="controls">
       <div class="control">
         <label for="shadow-count">assignments to compare</label>
@@ -905,6 +1115,27 @@
       changes a rule's content hash and should move nothing at all, and one is a new
       rule that reads like a modest tightening.
     </p>
+
+    <div class="domain">
+      <div class="label">What is being proposed, in real terms</div>
+      <p>
+        Two of the four edits tighten fatigue limits. The first shortens the
+        permitted day faster as sectors accumulate, from half an hour per extra
+        sector to three quarters. The second adds a half hour of margin on top of
+        the legal minimum rest, so crew get slightly more time off than the law
+        demands.
+      </p>
+      <p>
+        The third edit only changes the order findings appear in on screen, so it
+        should have no effect on any decision at all. It is there to show that the
+        tool can prove a change is harmless.
+      </p>
+      <p>
+        The fourth adds a brand new rule: the captain must hold at least 500 hours
+        on that aircraft type. It sounds modest. Watch what it does to a month of
+        real assignments before deciding it is.
+      </p>
+    </div>
 
     <div class="panel" style="margin-bottom:16px">
       <h3 style="margin-top:0">Proposal: autumn fatigue package</h3>
@@ -1062,10 +1293,12 @@
   <div class="wrap">
     <h2>The words on this page</h2>
     <p class="sub">
-      A rules engine attracts jargon. Here is the short version of each term, in the
-      sense it is used above.
+      Two vocabularies collide here: the one that comes with rules engines and the
+      one that comes with airlines. Short version of each, in the sense it is used
+      above.
     </p>
     <div class="glossary">
+      <div class="gloss-group">From the rules engine</div>
       <dl class="gloss">
         <dt>Rule</dt>
         <dd>One check, with one outcome. "Rest before duty must be at least twelve hours."
@@ -1125,6 +1358,86 @@
         <dt>What-if replay</dt>
         <dd>Taking a proposed rule change, running it against decisions already made, and
           counting how many would come out differently.</dd>
+      </dl>
+
+      <div class="gloss-group">From crew rostering</div>
+      <dl class="gloss">
+        <dt>Duty</dt>
+        <dd>One working stretch, from reporting for work to the end of the last flight.
+          It may contain several flights.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Sector</dt>
+        <dd>One take-off and one landing. More sectors in a day means more workload,
+          so the permitted duty length falls.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Flight duty period <span class="also">FDP</span></dt>
+        <dd>The regulated length of a duty. Longer than time in the air, because it
+          counts briefing, turnarounds and waiting.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Block hours</dt>
+        <dd>Roughly time in the air. Capped over rolling 28 day and 365 day windows.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Acclimatised</dt>
+        <dd>Adjusted to the local time zone. If not, the body clock is out of step and
+          the permitted duty is shorter.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Rest</dt>
+        <dd>Protected time off before the next duty. There is a legal minimum, and some
+          operators add a margin on top.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Standby</dt>
+        <dd>On call, waiting to be assigned. Part of it counts toward the duty limit
+          even though nothing has been flown.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Augmented crew</dt>
+        <dd>An extra pilot carried so pilots can rest in flight, which is what allows a
+          longer duty than normal.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Rank <span class="also">CP, FO, SCC, CC</span></dt>
+        <dd>Captain, first officer (the co-pilot), senior cabin crew member, cabin crew.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Type rating</dt>
+        <dd>A licence endorsement for one aircraft type. An A320 rating does not let you
+          fly a B787.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Hours on type</dt>
+        <dd>Experience on that particular aircraft, which is not the same as total career
+          hours. Experienced pilots can be new to a type.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Line training</dt>
+        <dd>A newly qualified pilot flying real passenger flights under supervision.
+          Requires a qualified training captain in the other seat.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>ETOPS</dt>
+        <dd>Routes where a two-engine aircraft is far from any diversion airport. Needs a
+          separate crew qualification.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>LVO</dt>
+        <dd>Low visibility operations: landing in poor visibility using more demanding
+          procedures. Another separate qualification.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Aerodrome category <span class="also">A, B, C</span></dt>
+        <dd>How demanding an airport is to fly into. Category C is the hardest and needs
+          extra briefing or experience.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Roster</dt>
+        <dd>The published schedule of who works which duties. The person who builds it is
+          a planner.</dd>
       </dl>
     </div>
   </div>

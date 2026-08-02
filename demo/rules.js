@@ -561,7 +561,9 @@ function member(id, rank, hours, extra) {
 const SCENARIOS = {
   legal: {
     label: 'Clean assignment',
-    blurb: 'Everything within limits. Watch how few of the planned fields are actually read.',
+    blurb: 'A captain on a two sector day, well rested, current on everything, with a '
+      + 'full cabin crew. Nothing to flag. Watch how few of the possible fields are '
+      + 'actually read when every check passes on its first term.',
     client: 'AIRLINE_A',
     asOf: '2026-08-14',
     facts: {
@@ -604,7 +606,10 @@ const SCENARIOS = {
 
   fdp_breach: {
     label: 'Long unacclimatised duty, five sectors',
-    blurb: 'Three derivation rules compete for the limit. The most restrictive wins, and the trace shows which.',
+    blurb: 'A fourteen and a half hour day with five take-offs and landings, flown by '
+      + 'someone whose body clock has not caught up with local time. Each of those '
+      + 'facts shortens the permitted duty, so three rules propose a limit and the '
+      + 'strictest one wins. Two low hours first officers are rostered together as well.',
     client: 'AIRLINE_A',
     asOf: '2026-08-14',
     facts: {
@@ -648,7 +653,11 @@ const SCENARIOS = {
 
   composition: {
     label: 'The whole roster is the problem',
-    blurb: 'Three findings that no amount of data about the crew member in the request could produce.',
+    blurb: 'The captain is fine. The crew is not: only three cabin crew where four are '
+      + 'required to evacuate the aircraft, a trainee first officer with nobody '
+      + 'qualified to supervise him, and a destination where somebody on board should '
+      + 'speak the local language. No amount of data about the captain would find any '
+      + 'of it.',
     client: 'AIRLINE_A',
     asOf: '2026-08-14',
     facts: {
@@ -690,7 +699,10 @@ const SCENARIOS = {
 
   qualifications: {
     label: 'ETOPS sector, lapsed paperwork',
-    blurb: 'Decision table rules doing what decision tables are good at.',
+    blurb: 'A long overwater flight on a B787. The first officer is rated on the A320, '
+      + 'not the B787, holds no overwater qualification, and his medical certificate '
+      + 'expired four days ago. Three separate pieces of paperwork, three separate '
+      + 'rules, all of them table rows rather than code.',
     client: 'AIRLINE_A',
     asOf: '2026-08-14',
     facts: {
