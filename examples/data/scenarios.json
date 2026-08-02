@@ -1,0 +1,306 @@
+{
+  "_note": "Fact documents for the example ruleset. Every scenario is a deliberately oversized payload, so that the projection has something to trim. Everything here is invented: the operator code ZQ is fictional, the flight numbers, crew identifiers and personal details are fabricated, and no real roster, aircraft or person is represented.",
+
+  "legal": {
+    "label": "Clean assignment",
+    "client": "AIRLINE_A",
+    "as_of": "2026-08-14",
+    "key": {"crew_id": "C1001", "flight_id": "ZQ4101"},
+    "facts": {
+      "limits": {
+        "max_fdp_hours_base": 13.0,
+        "max_hours_28d": 100.0,
+        "max_hours_365d": 900.0,
+        "max_duty_7d": 60.0,
+        "min_rest_hours": 12.0,
+        "min_cabin_crew": 4
+      },
+      "crew": {
+        "id": "C1001",
+        "rank": "CP",
+        "base": "LHR",
+        "seniority_years": 14,
+        "qualifications": ["A320", "ETOPS", "LVO", "CAT_C", "LINE_CHECK_CURRENT"],
+        "medical_expiry": "2027-03-31",
+        "hours_on_type": 4200,
+        "hours_last_28d": 62.0,
+        "hours_last_365d": 610.0,
+        "duty_hours_last_7d": 38.0,
+        "rest_hours_before_duty": 14.0,
+        "standby_hours_before_report": 0.0
+      },
+      "duty": {
+        "start_utc": "2026-08-14T05:15:00Z",
+        "end_utc": "2026-08-14T15:45:00Z",
+        "sectors": 2,
+        "acclimatised": true,
+        "is_augmented": false,
+        "additional_crew": 0,
+        "encroaches_wocl": false
+      },
+      "flight": {
+        "number": "ZQ4101",
+        "aircraft_type": "A320",
+        "departure_utc": "2026-08-14T06:15:00Z",
+        "arrival_utc": "2026-08-14T09:05:00Z",
+        "departure_date": "2026-08-14",
+        "is_etops": false,
+        "is_lowvis_expected": false,
+        "destination_category": "A",
+        "requires_local_language": false,
+        "local_language": null,
+        "roster": [
+          {"id": "C1001", "rank": "CP", "hours_on_type": 4200, "is_under_line_training": false, "is_line_training_captain": true, "languages": ["en"]},
+          {"id": "C1002", "rank": "FO", "hours_on_type": 900, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en", "fr"]},
+          {"id": "C2001", "rank": "SCC", "hours_on_type": 2100, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en", "es"]},
+          {"id": "C2002", "rank": "CC", "hours_on_type": 800, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2003", "rank": "CC", "hours_on_type": 640, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en", "it"]},
+          {"id": "C2004", "rank": "CC", "hours_on_type": 310, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]}
+        ]
+      }
+    }
+  },
+
+  "fdp_breach": {
+    "label": "Long unacclimatised duty, five sectors",
+    "client": "AIRLINE_A",
+    "as_of": "2026-08-14",
+    "key": {"crew_id": "C1001", "flight_id": "ZQ4207"},
+    "facts": {
+      "limits": {
+        "max_fdp_hours_base": 13.0,
+        "max_hours_28d": 100.0,
+        "max_hours_365d": 900.0,
+        "max_duty_7d": 60.0,
+        "min_rest_hours": 12.0,
+        "min_cabin_crew": 4
+      },
+      "crew": {
+        "id": "C1001",
+        "rank": "CP",
+        "base": "LHR",
+        "seniority_years": 14,
+        "qualifications": ["A320", "ETOPS", "LVO", "CAT_C", "LINE_CHECK_CURRENT"],
+        "medical_expiry": "2027-03-31",
+        "hours_on_type": 4200,
+        "hours_last_28d": 88.0,
+        "hours_last_365d": 610.0,
+        "duty_hours_last_7d": 47.0,
+        "rest_hours_before_duty": 12.5,
+        "standby_hours_before_report": 4.0
+      },
+      "duty": {
+        "start_utc": "2026-08-14T05:00:00Z",
+        "end_utc": "2026-08-14T19:30:00Z",
+        "sectors": 5,
+        "acclimatised": false,
+        "is_augmented": false,
+        "additional_crew": 0,
+        "encroaches_wocl": false
+      },
+      "flight": {
+        "number": "ZQ4207",
+        "aircraft_type": "A320",
+        "departure_utc": "2026-08-14T06:00:00Z",
+        "arrival_utc": "2026-08-14T18:40:00Z",
+        "departure_date": "2026-08-14",
+        "is_etops": false,
+        "is_lowvis_expected": false,
+        "destination_category": "A",
+        "requires_local_language": false,
+        "local_language": null,
+        "roster": [
+          {"id": "C1001", "rank": "CP", "hours_on_type": 4200, "is_under_line_training": false, "is_line_training_captain": true, "languages": ["en"]},
+          {"id": "C1044", "rank": "FO", "hours_on_type": 62, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C1051", "rank": "FO", "hours_on_type": 81, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2001", "rank": "SCC", "hours_on_type": 2100, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2002", "rank": "CC", "hours_on_type": 800, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2003", "rank": "CC", "hours_on_type": 640, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2004", "rank": "CC", "hours_on_type": 310, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]}
+        ]
+      }
+    }
+  },
+
+  "qualifications": {
+    "label": "ETOPS sector, lapsed paperwork",
+    "client": "AIRLINE_A",
+    "as_of": "2026-08-14",
+    "key": {"crew_id": "C1077", "flight_id": "ZQ4318"},
+    "facts": {
+      "limits": {
+        "max_fdp_hours_base": 13.0,
+        "max_hours_28d": 100.0,
+        "max_hours_365d": 900.0,
+        "max_duty_7d": 60.0,
+        "min_rest_hours": 12.0,
+        "min_cabin_crew": 4
+      },
+      "crew": {
+        "id": "C1077",
+        "rank": "FO",
+        "base": "LHR",
+        "seniority_years": 3,
+        "qualifications": ["A320", "LVO"],
+        "medical_expiry": "2026-08-10",
+        "hours_on_type": 1450,
+        "hours_last_28d": 44.0,
+        "hours_last_365d": 480.0,
+        "duty_hours_last_7d": 21.0,
+        "rest_hours_before_duty": 16.0,
+        "standby_hours_before_report": 0.0
+      },
+      "duty": {
+        "start_utc": "2026-08-14T09:00:00Z",
+        "end_utc": "2026-08-14T19:00:00Z",
+        "sectors": 1,
+        "acclimatised": true,
+        "is_augmented": true,
+        "additional_crew": 1,
+        "encroaches_wocl": false
+      },
+      "flight": {
+        "number": "ZQ4318",
+        "aircraft_type": "B787",
+        "departure_utc": "2026-08-14T10:00:00Z",
+        "arrival_utc": "2026-08-14T18:20:00Z",
+        "departure_date": "2026-08-14",
+        "is_etops": true,
+        "is_lowvis_expected": false,
+        "destination_category": "B",
+        "requires_local_language": false,
+        "local_language": null,
+        "roster": [
+          {"id": "C1003", "rank": "CP", "hours_on_type": 6100, "is_under_line_training": false, "is_line_training_captain": true, "languages": ["en"]},
+          {"id": "C1077", "rank": "FO", "hours_on_type": 1450, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C1080", "rank": "FO", "hours_on_type": 2200, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2010", "rank": "SCC", "hours_on_type": 3000, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2011", "rank": "CC", "hours_on_type": 1200, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2012", "rank": "CC", "hours_on_type": 900, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2013", "rank": "CC", "hours_on_type": 700, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2014", "rank": "CC", "hours_on_type": 450, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]}
+        ]
+      }
+    }
+  },
+
+  "composition": {
+    "label": "Vertical slice: the whole roster is the problem",
+    "client": "AIRLINE_A",
+    "as_of": "2026-08-14",
+    "key": {"crew_id": "C1005", "flight_id": "ZQ4462"},
+    "facts": {
+      "limits": {
+        "max_fdp_hours_base": 13.0,
+        "max_hours_28d": 100.0,
+        "max_hours_365d": 900.0,
+        "max_duty_7d": 60.0,
+        "min_rest_hours": 12.0,
+        "min_cabin_crew": 4
+      },
+      "crew": {
+        "id": "C1005",
+        "rank": "CP",
+        "base": "LHR",
+        "seniority_years": 9,
+        "qualifications": ["A320", "CAT_C", "LINE_CHECK_CURRENT"],
+        "medical_expiry": "2027-01-31",
+        "hours_on_type": 380,
+        "hours_last_28d": 51.0,
+        "hours_last_365d": 520.0,
+        "duty_hours_last_7d": 30.0,
+        "rest_hours_before_duty": 13.0,
+        "standby_hours_before_report": 0.0
+      },
+      "duty": {
+        "start_utc": "2026-08-14T04:30:00Z",
+        "end_utc": "2026-08-14T13:00:00Z",
+        "sectors": 2,
+        "acclimatised": true,
+        "is_augmented": false,
+        "additional_crew": 0,
+        "encroaches_wocl": false
+      },
+      "flight": {
+        "number": "ZQ4462",
+        "aircraft_type": "A320",
+        "departure_utc": "2026-08-14T05:30:00Z",
+        "arrival_utc": "2026-08-14T09:15:00Z",
+        "departure_date": "2026-08-14",
+        "is_etops": false,
+        "is_lowvis_expected": false,
+        "destination_category": "C",
+        "requires_local_language": true,
+        "local_language": "el",
+        "roster": [
+          {"id": "C1005", "rank": "CP", "hours_on_type": 380, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C1090", "rank": "FO", "hours_on_type": 55, "is_under_line_training": true, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2020", "rank": "SCC", "hours_on_type": 1500, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2021", "rank": "CC", "hours_on_type": 400, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2022", "rank": "CC", "hours_on_type": 220, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en", "fr"]}
+        ]
+      }
+    }
+  },
+
+  "tenant_margin": {
+    "label": "Same facts, AIRLINE_B ruleset",
+    "client": "AIRLINE_B",
+    "as_of": "2026-08-14",
+    "key": {"crew_id": "C1001", "flight_id": "ZQ4101"},
+    "facts": {
+      "limits": {
+        "max_fdp_hours_base": 13.0,
+        "max_hours_28d": 100.0,
+        "max_hours_365d": 900.0,
+        "max_duty_7d": 60.0,
+        "min_rest_hours": 12.0,
+        "min_cabin_crew": 4
+      },
+      "crew": {
+        "id": "C1001",
+        "rank": "CP",
+        "base": "LHR",
+        "seniority_years": 14,
+        "qualifications": ["A320", "ETOPS", "LVO", "CAT_C", "LINE_CHECK_CURRENT"],
+        "medical_expiry": "2027-03-31",
+        "hours_on_type": 4200,
+        "hours_last_28d": 62.0,
+        "hours_last_365d": 610.0,
+        "duty_hours_last_7d": 38.0,
+        "rest_hours_before_duty": 13.0,
+        "standby_hours_before_report": 0.0,
+        "hotel_rest_grade": "B"
+      },
+      "duty": {
+        "start_utc": "2026-08-14T05:15:00Z",
+        "end_utc": "2026-08-14T15:45:00Z",
+        "sectors": 2,
+        "acclimatised": true,
+        "is_augmented": false,
+        "additional_crew": 0,
+        "encroaches_wocl": false
+      },
+      "flight": {
+        "number": "ZQ4101",
+        "aircraft_type": "A320",
+        "departure_utc": "2026-08-14T06:15:00Z",
+        "arrival_utc": "2026-08-14T09:05:00Z",
+        "departure_date": "2026-08-14",
+        "is_etops": false,
+        "is_lowvis_expected": false,
+        "destination_category": "A",
+        "requires_local_language": false,
+        "local_language": null,
+        "roster": [
+          {"id": "C1001", "rank": "CP", "hours_on_type": 4200, "is_under_line_training": false, "is_line_training_captain": true, "languages": ["en"]},
+          {"id": "C1002", "rank": "FO", "hours_on_type": 900, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2001", "rank": "SCC", "hours_on_type": 2100, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2002", "rank": "CC", "hours_on_type": 800, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2003", "rank": "CC", "hours_on_type": 640, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+          {"id": "C2004", "rank": "CC", "hours_on_type": 310, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]}
+        ]
+      }
+    }
+  }
+}

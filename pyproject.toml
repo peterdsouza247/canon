@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "canon-rules"
+version = "0.1.0"
+description = "A stateless, self explaining rules engine with generated payload contracts and tamper evident deployments"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["rules-engine", "crew-rostering", "odm", "aviation", "provenance"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Interpreters",
+]
+
+# The engine itself has no runtime dependencies. That is deliberate: it is the
+# thing that runs inside somebody else's transaction, and it should be able to
+# be vendored without argument.
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["pyyaml>=6.0"]
+dev = ["pyyaml>=6.0", "pytest>=8.0", "pytest-cov>=5.0"]
+
+[project.scripts]
+canon = "canon.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,32 @@
+{
+  "_note": "The BOM knowledge the importer cannot infer. Every ODM object phrase must map to a Canon fact root before the importer will convert a rule that mentions it.",
+
+  "objects": {
+    "duty": "duty",
+    "crew member": "crew",
+    "flight": "flight",
+    "roster": "flight",
+    "limits": "limits",
+    "result": "result"
+  },
+
+  "attributes": {
+    "duty hours": "duty_hours",
+    "rest before duty": "rest_hours_before_duty",
+    "hours last 28d": "hours_last_28d",
+    "hours last 365d": "hours_last_365d",
+    "is etops": "is_etops",
+    "encroaches wocl": "encroaches_wocl",
+    "hours on type": "hours_on_type"
+  },
+
+  "codes": {
+    "Flight duty period exceeds the permitted maximum": "FTL_FDP_EXCEEDED",
+    "Rest before report is below the minimum": "REST_INSUFFICIENT",
+    "Block hours in the last 28 days exceed the limit": "BLOCK_HOURS_28D_EXCEEDED",
+    "ETOPS sector requires an ETOPS qualified crew member": "ETOPS_NOT_QUALIFIED",
+    "Two inexperienced pilots are paired on this flight": "INEXPERIENCED_PILOT_PAIRING"
+  },
+
+  "result_object": "the result"
+}

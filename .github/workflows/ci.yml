@@ -1,0 +1,118 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # Without this, the first Python version to fail cancels the others and
+      # you cannot tell a real failure from a version specific one.
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+
+      - name: Run the test suite
+        id: pytest
+        # --continue-on-collection-errors matters here: without it one module
+        # that fails to import aborts the whole run and hides the state of
+        # everything else, which wastes a round trip when the feedback loop is
+        # already a push and a wait.
+        run: |
+          set -o pipefail
+          pytest -q --tb=short -ra --continue-on-collection-errors 2>&1 \
+            | tee pytest-${{ matrix.python-version }}.txt
+
+      - name: Put the failures in the job summary
+        # Reading a CI failure should not require downloading an artifact or
+        # scrolling a log. The last 200 lines of pytest output land on the run
+        # summary page, where they can be read and pasted.
+        if: always()
+        run: |
+          {
+            echo "### pytest on Python ${{ matrix.python-version }}"
+            echo ""
+            echo '```'
+            tail -n 200 pytest-${{ matrix.python-version }}.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-${{ matrix.python-version }}
+          path: pytest-${{ matrix.python-version }}.txt
+
+  contract:
+    # The payload contract is a generated artefact. If it changes, either a rule
+    # changed or somebody broke the integration surface. Either way a human
+    # should see it in the diff rather than find out in production.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[yaml]"
+      - name: Regenerate the payload contract
+        run: |
+          mkdir -p build
+          canon plan examples/rules/ftl.yaml --json > build/contract.json
+          canon validate examples/rules/ftl.yaml
+      - name: Build and diff the manifest
+        run: |
+          canon manifest examples/rules/ftl.yaml \
+            --out build/manifest.json \
+            --revision "${{ github.sha }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contract-and-manifest
+          path: build/
+
+  impact:
+    # Every proposed rule change gets replayed against captured traffic before a
+    # human reads the diff. The two lines worth reading are the rules that
+    # changed and moved nothing, and the rules that moved decisions without
+    # themselves changing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[yaml]"
+      - name: Generate a capture file
+        # In a real deployment this step downloads a real capture instead.
+        run: python tools/make_shadow_cases.py -n 600
+      - name: Replay the proposal
+        # pipefail matters here: without it the exit status of the pipeline is
+        # tee's, so a failing canon command produces a green tick and an empty
+        # artefact. That is worse than no check at all.
+        run: |
+          set -o pipefail
+          canon whatif examples/rules/ftl.yaml \
+            --proposal examples/proposals/2026-09-fatigue-package.yaml \
+            --cases examples/shadow/cases.jsonl \
+            --out build-impact.json | tee impact.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: impact-report
+          path: |
+            impact.txt
+            build-impact.json
+
+      - name: Interactive session, verified against full evaluation
+        # Every edit in the sequence is checked against a from scratch
+        # evaluation. If the incremental path ever disagrees with the full one,
+        # this fails, which is the guarantee the whole editing story rests on.
+        run: python tools/interactive_demo.py --verify

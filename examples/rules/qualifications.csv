@@ -1,0 +1,7 @@
+id,version,priority,title,when flight.is_etops ==,when flight.is_lowvis_expected ==,when flight.destination_category ==,when crew.qualifications not contains,when crew.medical_expiry <,then code,then severity,then message,then detail required
+QUAL-001,3,50,Type rating for the aircraft,,,,=flight.aircraft_type,,NOT_TYPE_RATED,hard,Crew member does not hold a type rating for {required},flight.aircraft_type
+QUAL-002,2,51,ETOPS qualification,true,,,ETOPS,,ETOPS_NOT_QUALIFIED,hard,ETOPS sector requires an ETOPS qualified crew member,'ETOPS'
+QUAL-003,2,52,Low visibility operations,,true,,LVO,,LVO_NOT_QUALIFIED,hard,Low visibility approach expected and the crew member is not LVO qualified,'LVO'
+QUAL-004,1,53,Category C aerodrome briefing,,,C,CAT_C,,CAT_C_NOT_QUALIFIED,hard,Category C aerodrome requires a current aerodrome briefing,'CAT_C'
+QUAL-005,4,54,Class one medical certificate,,,,,=flight.departure_date,MEDICAL_EXPIRED,hard,Medical certificate expires before the flight departs,crew.medical_expiry
+QUAL-006,1,55,Recurrent line check,,,,LINE_CHECK_CURRENT,,LINE_CHECK_LAPSED,hard,Recurrent line check is not current,'LINE_CHECK_CURRENT'

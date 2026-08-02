@@ -1,0 +1,347 @@
+# Flight time limitations and crew composition.
+#
+# Entirely illustrative. The numbers are shaped like the published EASA ORO.FTL
+# structure; they are not a copy of it, nor of any operator's ruleset, and no
+# aircraft should be dispatched on them. What is real here is the shape:
+# derivations first, checks second, and everything a rule reads written down
+# where a reviewer can see it.
+#
+# A note on YAML. Every line of a folded block (>) must sit at the same
+# indentation. A line indented further keeps its line break instead of being
+# folded to a space, which silently cuts an expression in half.
+
+ruleset: crew_rostering
+version: "2026.08.1"
+description: >
+  Legality checks for assigning a crew member to a flight duty period.
+  Stratum 0 derives the applicable limits, stratum 1 tests against them.
+
+derived:
+  # Several regulations cap the flight duty period. The most restrictive one
+  # wins. Saying that once, here, is better than encoding it in rule ordering
+  # and hoping nobody reorders the file.
+  max_fdp_hours:
+    combine: min
+  # Augmentation extends the limit rather than restricting it, so the largest
+  # applicable credit wins.
+  augmentation_credit:
+    combine: max
+
+rules:
+
+  # ----------------------------------------------------------------------
+  # Stratum 0: derive the limits that apply to this duty
+  # ----------------------------------------------------------------------
+
+  - id: FTL-001
+    version: "4"
+    title: Baseline flight duty period
+    description: >
+      The unrestricted limit for an acclimatised crew member flying two sectors
+      or fewer. Every other FDP rule reduces this.
+    owner: rostering-rules@example.com
+    tags: [ftl, derivation]
+    priority: 10
+    set:
+      max_fdp_hours: limits.max_fdp_hours_base
+
+  - id: FTL-002
+    version: "3"
+    title: Sector reduction
+    description: >
+      Each sector beyond the second reduces the permitted duty period by half
+      an hour, to a floor of nine hours.
+    tags: [ftl, derivation]
+    priority: 11
+    when: duty.sectors > 2
+    set:
+      max_fdp_hours: >
+        max(9.0, limits.max_fdp_hours_base - 0.5 * (duty.sectors - 2))
+
+  - id: FTL-003
+    version: "2"
+    title: Unacclimatised reduction
+    description: >
+      A crew member who has not acclimatised to local time loses two hours from
+      the permitted duty period.
+    tags: [ftl, derivation]
+    priority: 12
+    when: duty.acclimatised == False
+    set:
+      max_fdp_hours: limits.max_fdp_hours_base - 2.0
+
+  - id: FTL-004
+    version: "1"
+    title: No augmentation by default
+    description: >
+      Establishes the floor for the augmentation credit so that the consuming
+      rule never has to reason about a missing value.
+    tags: [ftl, derivation]
+    priority: 13
+    set:
+      augmentation_credit: "0.0"
+
+  - id: FTL-005
+    version: "2"
+    title: Augmented crew extension
+    description: >
+      An extra qualified pilot in the seat allows the duty period to extend.
+      Four hours with one additional pilot, six with two.
+    tags: [ftl, derivation]
+    priority: 14
+    when: duty.is_augmented == True and duty.additional_crew >= 1
+    set:
+      augmentation_credit: "6.0 if duty.additional_crew >= 2 else 4.0"
+
+  # ----------------------------------------------------------------------
+  # Stratum 1: test the duty against the derived limits
+  # ----------------------------------------------------------------------
+
+  - id: FTL-010
+    version: "5"
+    title: Flight duty period within the permitted maximum
+    description: >
+      The headline legality check. Reads both derived values explicitly, so the
+      dependency on the five derivation rules above is visible here and enforced
+      by the dependency graph rather than by evaluation order.
+    owner: rostering-rules@example.com
+    tags: [ftl, legality]
+    priority: 20
+    reads:
+      - derived.max_fdp_hours
+      - derived.augmentation_credit
+    when: >
+      hours_between(duty.start_utc, duty.end_utc)
+      > derived.max_fdp_hours + derived.augmentation_credit
+    emit:
+      code: FTL_FDP_EXCEEDED
+      severity: hard
+      message: >
+        Flight duty period of {actual_hours}h exceeds the permitted {limit_hours}h
+        for this duty
+      detail:
+        actual_hours: round(hours_between(duty.start_utc, duty.end_utc), 2)
+        limit_hours: >
+          round(derived.max_fdp_hours + derived.augmentation_credit, 2)
+        sectors: duty.sectors
+        acclimatised: duty.acclimatised
+
+  - id: FTL-020
+    version: "3"
+    title: Minimum rest before duty
+    tags: [ftl, legality, rest]
+    priority: 21
+    when: crew.rest_hours_before_duty < limits.min_rest_hours
+    emit:
+      code: REST_INSUFFICIENT
+      severity: hard
+      message: >
+        Rest of {actual}h before report falls short of the {required}h minimum
+      detail:
+        actual: crew.rest_hours_before_duty
+        required: limits.min_rest_hours
+
+  - id: FTL-030
+    version: "2"
+    title: Block hours in the preceding 28 days
+    tags: [ftl, legality, cumulative]
+    priority: 22
+    when: >
+      crew.hours_last_28d + hours_between(flight.departure_utc, flight.arrival_utc)
+      > limits.max_hours_28d
+    emit:
+      code: BLOCK_HOURS_28D_EXCEEDED
+      severity: hard
+      message: "Assignment would take 28 day block hours to {projected}h against a {limit}h limit"
+      detail:
+        projected: >
+          round(crew.hours_last_28d
+          + hours_between(flight.departure_utc, flight.arrival_utc), 1)
+        limit: limits.max_hours_28d
+
+  - id: FTL-031
+    version: "2"
+    title: Block hours in the preceding 365 days
+    tags: [ftl, legality, cumulative]
+    priority: 23
+    when: crew.hours_last_365d > limits.max_hours_365d
+    emit:
+      code: BLOCK_HOURS_365D_EXCEEDED
+      severity: hard
+      message: "Annual block hours of {actual}h exceed the {limit}h limit"
+      detail:
+        actual: crew.hours_last_365d
+        limit: limits.max_hours_365d
+
+  - id: FTL-040
+    version: "1"
+    title: Cumulative duty in the preceding seven days
+    tags: [ftl, legality, cumulative]
+    priority: 24
+    when: crew.duty_hours_last_7d > limits.max_duty_7d
+    emit:
+      code: DUTY_HOURS_7D_EXCEEDED
+      severity: hard
+      message: "Duty hours of {actual}h in the last seven days exceed the {limit}h limit"
+      detail:
+        actual: crew.duty_hours_last_7d
+        limit: limits.max_duty_7d
+
+  - id: FTL-050
+    version: "1"
+    title: Standby ahead of duty counts toward the duty period
+    description: >
+      An advisory rather than a block. Planners want to know before the roster
+      is published, not after somebody has already been called out.
+    tags: [ftl, advisory]
+    priority: 40
+    reads:
+      - derived.max_fdp_hours
+    # Every line of a folded block must sit at the same indentation. A line
+    # indented further keeps its line break, which turns the expression into
+    # two lines, and two lines is a syntax error.
+    when: >
+      crew.standby_hours_before_report > 0
+      and hours_between(duty.start_utc, duty.end_utc)
+      + crew.standby_hours_before_report * 0.25
+      > derived.max_fdp_hours
+    emit:
+      code: STANDBY_PUSHES_FDP_OVER_LIMIT
+      severity: soft
+      message: >
+        With {standby}h of standby counted at a quarter rate, this duty would
+        pass the {limit}h limit
+      detail:
+        standby: crew.standby_hours_before_report
+        limit: derived.max_fdp_hours
+
+  # ----------------------------------------------------------------------
+  # Crew composition. These are the vertical slice rules: they need the whole
+  # roster for the flight, not just the crew member in the request.
+  # ----------------------------------------------------------------------
+
+  - id: CREW-001
+    version: "3"
+    title: Minimum cabin crew complement
+    description: >
+      One cabin crew member per fifty passenger seats, rounded up, and never
+      fewer than the type minimum.
+    tags: [composition, legality]
+    priority: 30
+    when: >
+      sum(1 for m in flight.roster if m.rank in ['SCC', 'CC'])
+      < limits.min_cabin_crew
+    emit:
+      code: CABIN_CREW_BELOW_MINIMUM
+      severity: hard
+      message: "{actual} cabin crew rostered against a minimum of {required}"
+      detail:
+        actual: sum(1 for m in flight.roster if m.rank in ['SCC', 'CC'])
+        required: limits.min_cabin_crew
+
+  - id: CREW-002
+    version: "2"
+    title: Inexperienced pilot pairing
+    description: >
+      Two pilots with fewer than a hundred hours on type must not be paired.
+      This is the rule that is impossible to express cleanly when the payload
+      only carries the crew member named in the request.
+    tags: [composition, legality]
+    priority: 31
+    when: >
+      sum(1 for m in flight.roster
+      if m.rank in ['CP', 'FO'] and m.hours_on_type < 100) > 1
+    emit:
+      code: INEXPERIENCED_PILOT_PAIRING
+      severity: hard
+      message: "{count} pilots on this flight have under 100 hours on type"
+      detail:
+        count: >
+          sum(1 for m in flight.roster
+          if m.rank in ['CP', 'FO'] and m.hours_on_type < 100)
+
+  - id: CREW-003
+    version: "2"
+    title: Line training needs a line training captain
+    tags: [composition, legality, training]
+    priority: 32
+    when: >
+      any(m.is_under_line_training for m in flight.roster)
+      and not any(m.is_line_training_captain for m in flight.roster)
+    emit:
+      code: LINE_TRAINING_WITHOUT_LTC
+      severity: hard
+      message: A crew member is under line training with no line training captain on board
+
+  - id: CREW-004
+    version: "1"
+    title: Language capability for the destination
+    tags: [composition, advisory]
+    priority: 33
+    when: >
+      flight.requires_local_language == True
+      and not any(flight.local_language in m.languages for m in flight.roster)
+    emit:
+      code: NO_LOCAL_LANGUAGE_SPEAKER
+      severity: soft
+      message: "No rostered crew member speaks {language}"
+      detail:
+        language: flight.local_language
+
+  - id: CREW-005
+    version: "1"
+    title: Combined flight deck experience into a category C aerodrome
+    tags: [composition, advisory]
+    priority: 34
+    when: >
+      flight.destination_category == 'C'
+      and sum(m.hours_on_type for m in flight.roster if m.rank in ['CP', 'FO'])
+      < 1500
+    emit:
+      code: LOW_COMBINED_EXPERIENCE_CAT_C
+      severity: soft
+      message: >
+        Combined flight deck experience of {combined}h into a category C
+        aerodrome is below the 1500h guideline
+      detail:
+        combined: >
+          sum(m.hours_on_type for m in flight.roster
+          if m.rank in ['CP', 'FO'])
+
+  # ----------------------------------------------------------------------
+  # Tenant specific and date effective rules
+  # ----------------------------------------------------------------------
+
+  - id: FTL-090
+    version: "1"
+    title: Additional rest margin for AIRLINE_B
+    description: >
+      A single operator applies a rest margin above the regulatory minimum.
+      It is scoped to that client, so it never appears in another client's
+      payload contract and never costs another client a field on the wire.
+    tags: [ftl, tenant]
+    clients: [AIRLINE_B]
+    priority: 25
+    when: crew.rest_hours_before_duty < limits.min_rest_hours + 2
+    emit:
+      code: REST_BELOW_OPERATOR_MARGIN
+      severity: soft
+      message: >
+        Rest of {actual}h in grade {grade} accommodation is inside the
+        operator's two hour margin
+      detail:
+        actual: crew.rest_hours_before_duty
+        grade: crew.hotel_rest_grade
+
+  - id: FTL-095
+    version: "1"
+    title: Night duty reduction from September 2026
+    description: >
+      A forthcoming regulation change, loaded now and dormant until its
+      effective date. Nobody has to remember to deploy anything on the day.
+    tags: [ftl, derivation, future]
+    priority: 15
+    effective_from: "2026-09-01"
+    when: duty.encroaches_wocl == True
+    set:
+      max_fdp_hours: limits.max_fdp_hours_base - 1.5

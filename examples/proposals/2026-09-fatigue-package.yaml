@@ -1,0 +1,82 @@
+# A proposed change to the crew rostering ruleset.
+#
+# Four edits. Two of them are meant to bite, one is cosmetic in effect even
+# though its content hash changes, and one is a brand new rule whose real blast
+# radius nobody has estimated. That last one is the point of the exercise: it
+# reads like a modest tightening and it is not.
+#
+# Replay it before deciding:
+#   canon whatif examples/rules/ftl.yaml \
+#         --proposal examples/proposals/2026-09-fatigue-package.yaml \
+#         --cases examples/shadow/cases.jsonl
+
+proposal: 2026-09-fatigue-package
+against: crew_rostering
+version: "2026.09.0-rc1"
+author: rostering-rules@example.com
+description: >
+  Autumn fatigue package. Steeper sector reduction, a half hour margin on
+  minimum rest, a priority correction, and a new commander experience minimum
+  requested by the training department.
+
+modify:
+
+  # Bites. The reduction per sector past the second goes from half an hour to
+  # three quarters. Note that this rule emits nothing: it only moves a derived
+  # limit, so every consequence of it lands on FTL-010, which is unchanged.
+  # The replay is what makes that visible.
+  - id: FTL-002
+    version: "4"
+    description: >
+      Each sector beyond the second reduces the permitted duty period by three
+      quarters of an hour, to a floor of nine hours.
+    set:
+      max_fdp_hours: >
+        max(9.0, limits.max_fdp_hours_base - 0.75 * (duty.sectors - 2))
+
+  # Bites, mildly and predictably. A half hour margin above the regulatory
+  # minimum, applied to everybody rather than to one operator.
+  - id: FTL-020
+    version: "4"
+    when: crew.rest_hours_before_duty < limits.min_rest_hours + 0.5
+    emit:
+      code: REST_INSUFFICIENT
+      severity: hard
+      message: >
+        Rest of {actual}h before report falls short of the {required}h minimum
+        plus the half hour operating margin
+      detail:
+        actual: crew.rest_hours_before_duty
+        required: limits.min_rest_hours
+
+  # Should bite nothing. Priority orders findings in the output and never
+  # affects logic, but it is part of the content hash, so this rule will show
+  # up in the manifest diff. The replay is how you demonstrate that a rule
+  # which changed is nonetheless inert.
+  - id: FTL-040
+    priority: 26
+
+add:
+
+  # The one to worry about. It reads like a modest tightening. Replay it
+  # against a month of traffic before anybody signs it off.
+  - id: CREW-006
+    version: "1"
+    title: Commander experience minimum
+    description: >
+      The aircraft commander must hold at least 500 hours on type. Requested by
+      the training department following the winter incident review.
+    tags: [composition, proposed]
+    priority: 35
+    when: >
+      sum(1 for m in flight.roster
+      if m.rank == 'CP' and m.hours_on_type < 500) > 0
+    emit:
+      code: COMMANDER_BELOW_EXPERIENCE_MINIMUM
+      severity: hard
+      message: "The commander holds {hours}h on type against a 500h minimum"
+      detail:
+        hours: >
+          min_or([m.hours_on_type for m in flight.roster if m.rank == 'CP'], 0)
+
+remove: []

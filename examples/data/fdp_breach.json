@@ -1,0 +1,55 @@
+{
+  "limits": {
+    "max_fdp_hours_base": 13.0,
+    "max_hours_28d": 100.0,
+    "max_hours_365d": 900.0,
+    "max_duty_7d": 60.0,
+    "min_rest_hours": 12.0,
+    "min_cabin_crew": 4
+  },
+  "crew": {
+    "id": "C1001",
+    "rank": "CP",
+    "base": "LHR",
+    "seniority_years": 14,
+    "qualifications": ["A320", "ETOPS", "LVO", "CAT_C", "LINE_CHECK_CURRENT"],
+    "medical_expiry": "2027-03-31",
+    "hours_on_type": 4200,
+    "hours_last_28d": 88.0,
+    "hours_last_365d": 610.0,
+    "duty_hours_last_7d": 47.0,
+    "rest_hours_before_duty": 12.5,
+    "standby_hours_before_report": 4.0,
+    "hotel_rest_grade": "B"
+  },
+  "duty": {
+    "start_utc": "2026-08-14T05:00:00Z",
+    "end_utc": "2026-08-14T19:30:00Z",
+    "sectors": 5,
+    "acclimatised": false,
+    "is_augmented": false,
+    "additional_crew": 0,
+    "encroaches_wocl": false
+  },
+  "flight": {
+    "number": "ZQ4207",
+    "aircraft_type": "A320",
+    "departure_utc": "2026-08-14T06:00:00Z",
+    "arrival_utc": "2026-08-14T18:40:00Z",
+    "departure_date": "2026-08-14",
+    "is_etops": false,
+    "is_lowvis_expected": false,
+    "destination_category": "A",
+    "requires_local_language": false,
+    "local_language": null,
+    "roster": [
+      {"id": "C1001", "rank": "CP", "hours_on_type": 4200, "is_under_line_training": false, "is_line_training_captain": true, "languages": ["en"]},
+      {"id": "C1044", "rank": "FO", "hours_on_type": 62, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+      {"id": "C1051", "rank": "FO", "hours_on_type": 81, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+      {"id": "C2001", "rank": "SCC", "hours_on_type": 2100, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+      {"id": "C2002", "rank": "CC", "hours_on_type": 800, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+      {"id": "C2003", "rank": "CC", "hours_on_type": 640, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]},
+      {"id": "C2004", "rank": "CC", "hours_on_type": 310, "is_under_line_training": false, "is_line_training_captain": false, "languages": ["en"]}
+    ]
+  }
+}

@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canon: the rules engine that can explain itself</title>
+<meta name="description" content="Deciding whether a crew member can legally fly. Canon works out what information it needs, shows its working, and can tell you when a rule last changed.">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #151b23;
+    --panel-2: #1b232d;
+    --line: #262f3b;
+    --ink: #e6edf3;
+    --ink-dim: #9aa7b4;
+    --ink-faint: #6b7885;
+    --accent: #58a6ff;
+    --accent-2: #7ee2b8;
+    --warn: #e3b341;
+    --bad: #f47067;
+    --good: #56d364;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6; font-size: 15.5px;
+  }
+  a { color: var(--accent); }
+  code, pre { font-family: var(--mono); font-size: 12.5px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .muted { color: var(--ink-faint); }
+  .hidden { display: none; }
+
+  /* reading mode ---------------------------------------------------- */
+  body.mode-plain .tech-only { display: none; }
+  body.mode-tech .plain-only { display: none; }
+
+  .mode-switch { display: inline-flex; gap: 4px; background: var(--panel);
+                 border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+  .mode-switch button { background: transparent; color: var(--ink-dim);
+                        border: 0; border-radius: 5px; padding: 6px 14px;
+                        font-size: 13px; font-weight: 600; cursor: pointer; }
+  .mode-switch button.active { background: var(--accent); color: #06121f; }
+  .mode-hint { font-size: 12.5px; color: var(--ink-faint); margin-left: 12px; }
+
+  abbr.term { text-decoration: none; border-bottom: 1px dotted var(--ink-faint);
+              cursor: help; }
+
+  header.hero { padding: 40px 0 44px; border-bottom: 1px solid var(--line); }
+  .topbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+            margin-bottom: 34px; }
+  .eyebrow { color: var(--accent-2); font-family: var(--mono); font-size: 12px;
+             letter-spacing: 0.14em; text-transform: uppercase; margin-right: auto; }
+  h1 { font-size: 42px; line-height: 1.12; margin: 0 0 16px; letter-spacing: -0.02em; }
+  .lede { font-size: 18px; color: var(--ink-dim); max-width: 760px; }
+  .lede + .lede { margin-top: 12px; }
+  .hero-note { margin-top: 20px; font-size: 13.5px; color: var(--ink-faint); max-width: 760px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 32px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .stat-num { font-size: 26px; font-family: var(--mono); color: var(--accent-2); }
+  .stat-cap { font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-sub { font-size: 12px; color: var(--ink-faint); margin-top: 6px; line-height: 1.4;
+              text-transform: none; letter-spacing: 0; }
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  h2 { font-size: 27px; margin: 0 0 10px; letter-spacing: -0.01em; }
+  h2 .qualifier { display: block; font-size: 13px; color: var(--ink-faint);
+                  font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase;
+                  margin-bottom: 6px; }
+  h3 { font-size: 15px; margin: 26px 0 10px; color: var(--ink-dim);
+       text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  .sub { color: var(--ink-dim); max-width: 780px; margin-bottom: 22px; }
+  .sub + .sub { margin-top: -10px; }
+
+  .callout { background: var(--panel-2); border-left: 3px solid var(--accent);
+             border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 18px 0 22px;
+             max-width: 820px; }
+  .callout .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
+                    color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  .callout p { margin: 0; color: var(--ink-dim); font-size: 14.5px; }
+  .callout.result { border-left-color: var(--accent-2); }
+  .callout.result .label { color: var(--accent-2); }
+
+  .story { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0 8px; }
+  .story-card { background: var(--panel); border: 1px solid var(--line);
+                border-radius: 8px; padding: 16px; }
+  .story-step { font-family: var(--mono); font-size: 11px; color: var(--accent-2);
+                letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .story-card p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+  .story-card.problem { border-color: rgba(244,112,103,0.4); }
+  .story-card.problem .story-step { color: var(--bad); }
+
+  table.problems { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 14.5px; }
+  table.problems th, table.problems td { text-align: left; padding: 13px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.problems th { color: var(--ink-faint); font-weight: 600; font-size: 12px;
+                      text-transform: uppercase; letter-spacing: 0.06em; }
+  table.problems td.n { color: var(--accent-2); font-family: var(--mono); width: 28px; }
+  table.problems td.fix { color: var(--ink-dim); }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 18px; }
+  .control label { display: block; font-size: 11px; color: var(--ink-faint);
+                   text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+  select, input[type=number] {
+    background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 10px; font-family: var(--mono); font-size: 13px;
+  }
+  button {
+    background: var(--accent); color: #06121f; border: 0; border-radius: 6px;
+    padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
+  button.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+
+  #rule-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; max-height: 300px;
+                  overflow: auto; padding-right: 6px; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 3px 4px; border-radius: 4px; }
+  .toggle:hover { background: var(--panel-2); }
+  .toggle-id { font-family: var(--mono); color: var(--accent); min-width: 74px; }
+  .toggle-title { color: var(--ink-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip { font-size: 10px; font-family: var(--mono); padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+  .chip-vertical { background: rgba(126,226,184,0.14); color: var(--accent-2); }
+  .chip-tenant { background: rgba(88,166,255,0.14); color: var(--accent); }
+  .chip-future { background: rgba(227,179,65,0.14); color: var(--warn); }
+
+  .tree-line { font-family: var(--mono); font-size: 12px; padding: 1px 0; }
+  .tree-key { color: var(--ink); }
+  .tree-leaf { color: var(--ink-faint); margin-left: 8px; font-size: 11px; }
+
+  .bars { margin: 14px 0 6px; }
+  .bar { height: 28px; border-radius: 4px; background: var(--panel-2); position: relative; margin-bottom: 8px; }
+  .bar .fill { height: 100%; border-radius: 4px; }
+  .bar .fill.full { width: 100%; background: rgba(244,112,103,0.35); }
+  .bar .fill.trim { background: rgba(126,226,184,0.45); }
+  .bar .cap { position: absolute; left: 10px; top: 4px; font-family: var(--mono); font-size: 12px; }
+
+  .kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; padding: 6px 0;
+        border-bottom: 1px solid var(--line); }
+  .kv:last-child { border-bottom: 0; }
+  .kv .k { color: var(--ink-faint); }
+  .kv .v { font-family: var(--mono); color: var(--accent-2); text-align: right; }
+
+  #contract-paths { max-height: 340px; overflow: auto; }
+  .path-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0;
+              border-bottom: 1px solid rgba(38,47,59,0.5); font-size: 12px; }
+  .path-row code.path { font-family: var(--mono); color: var(--ink); }
+  .path-row code.path.vertical { color: var(--accent-2); }
+  .requesters { color: var(--ink-faint); font-family: var(--mono); font-size: 11px;
+                text-align: right; max-width: 300px; }
+
+  .verdict { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+  .verdict.pass { color: var(--good); }
+  .verdict.fail { color: var(--bad); }
+
+  .finding { border-left: 3px solid var(--line); background: var(--panel-2);
+             padding: 10px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px; }
+  .finding.hard { border-left-color: var(--bad); }
+  .finding.soft { border-left-color: var(--warn); }
+  .finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sev { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+         padding: 1px 6px; border-radius: 3px; }
+  .sev.hard { background: rgba(244,112,103,0.16); color: var(--bad); }
+  .sev.soft { background: rgba(227,179,65,0.16); color: var(--warn); }
+  .finding-head code.code { color: var(--ink); }
+  .finding-head .from { color: var(--ink-faint); font-family: var(--mono); font-size: 11px; }
+  .finding-msg { color: var(--ink-dim); font-size: 13.5px; margin-top: 4px; }
+  button.why { background: transparent; border: 1px solid var(--line); color: var(--accent);
+               padding: 1px 10px; font-size: 11px; margin-left: auto; }
+
+  .derived-row { display: flex; gap: 12px; align-items: baseline; font-size: 12.5px; padding: 4px 0;
+                 border-bottom: 1px solid rgba(38,47,59,0.5); }
+  .dname { color: var(--accent); }
+  .dval { font-family: var(--mono); color: var(--accent-2); }
+  .dpolicy { color: var(--ink-faint); font-size: 11px; margin-left: auto; font-family: var(--mono); }
+
+  #eval-trace { max-height: 520px; overflow: auto; }
+  .stratum-header { font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+                    text-transform: uppercase; letter-spacing: 0.07em;
+                    margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .trace-row { border-left: 2px solid var(--line); padding: 6px 0 6px 10px; margin-bottom: 4px; }
+  .trace-row.fired { border-left-color: var(--accent-2); }
+  .trace-row.skipped { opacity: 0.45; }
+  .trace-head { display: flex; align-items: center; gap: 10px; font-size: 12.5px; flex-wrap: wrap; }
+  .trace-state { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+                 min-width: 48px; color: var(--ink-faint); }
+  .trace-row.fired .trace-state { color: var(--accent-2); }
+  .trace-id { color: var(--accent); }
+  .trace-title { color: var(--ink-dim); flex: 1; }
+  .trace-reads { color: var(--ink-faint); font-family: var(--mono); font-size: 11px; }
+  .trace-hash { color: var(--ink-faint); font-size: 10px; }
+  .trace-detail { font-size: 11.5px; margin-top: 3px; color: var(--ink-dim); }
+  .guard { color: var(--ink-dim); }
+  .guard-result { color: var(--accent-2); font-family: var(--mono); }
+  .trace-reads-list { margin-top: 4px; }
+  .read { display: flex; gap: 10px; font-size: 11px; padding: 1px 0; }
+  .read-path { color: var(--ink-faint); min-width: 320px; }
+  .read.vertical .read-path { color: var(--accent-2); }
+  .read-value { font-family: var(--mono); color: var(--ink-dim); }
+  .trace-set { font-size: 11.5px; color: var(--accent-2); font-family: var(--mono); margin-top: 3px; }
+
+  .explain-title { font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+                   text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+  .explain-step { border-left: 2px solid var(--line); padding: 6px 0 6px 10px; margin-bottom: 6px; }
+  .explain-head { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; flex-wrap: wrap; }
+  .explain-guard { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+  .explain-read { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  .explain-set { font-family: var(--mono); font-size: 11px; color: var(--accent-2); }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab { background: transparent; border: 1px solid var(--line); color: var(--ink-dim);
+         padding: 6px 14px; border-radius: 6px; font-family: var(--mono); font-size: 12px; }
+  .tab.active { border-color: var(--accent); color: var(--accent); }
+  pre.code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+             padding: 16px; overflow: auto; margin: 0; color: var(--ink-dim); line-height: 1.5; }
+
+  .stat-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px;
+              padding: 5px 0; border-bottom: 1px solid rgba(38,47,59,0.5); }
+  .stat-label { color: var(--ink-dim); font-family: var(--mono); font-size: 11.5px; }
+  .stat-value { color: var(--ink); font-family: var(--mono); text-align: right; }
+  .suspect { display: flex; gap: 12px; align-items: baseline; padding: 7px 0;
+             border-bottom: 1px solid rgba(38,47,59,0.5); font-size: 12.5px; }
+  .suspect-id { color: var(--accent); min-width: 90px; }
+  .suspect-detail { color: var(--ink-faint); flex: 1; font-size: 11.5px; }
+  .suspect-lift { color: var(--warn); font-family: var(--mono); font-size: 11.5px; text-align: right; }
+
+  .ledger-row, .blame-row { display: flex; gap: 14px; align-items: baseline;
+                            font-family: var(--mono); font-size: 12px; padding: 6px 0;
+                            border-bottom: 1px solid rgba(38,47,59,0.5); }
+  .ledger-seq, .blame-seq { color: var(--ink-faint); min-width: 34px; }
+  .ledger-when, .blame-when { color: var(--ink-dim); min-width: 150px; }
+  .ledger-env { color: var(--accent); min-width: 50px; }
+  .ledger-version { color: var(--ink); min-width: 90px; }
+  .ledger-root { color: var(--accent-2); }
+  .ledger-by, .blame-by { color: var(--ink-faint); margin-left: auto; }
+  .blame-change { min-width: 70px; }
+  .blame-change.added { color: var(--accent-2); }
+  .blame-change.modified { color: var(--warn); }
+  .blame-hash { color: var(--ink-dim); }
+  .blame-note { font-size: 13px; color: var(--ink-dim); margin-top: 12px; font-family: var(--sans); }
+
+  .verify { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-family: var(--mono); font-size: 12px; }
+  .verify.good { background: rgba(86,211,100,0.08); border: 1px solid rgba(86,211,100,0.3); color: var(--good); }
+  .verify.bad { background: rgba(244,112,103,0.08); border: 1px solid rgba(244,112,103,0.35); color: var(--bad); }
+  .verify-head { color: var(--ink-faint); margin-top: 6px; }
+  .verify-problem { margin-top: 5px; }
+
+  .stratum { display: flex; gap: 14px; align-items: baseline; padding: 8px 0;
+             border-bottom: 1px solid rgba(38,47,59,0.5); }
+  .stratum-label { font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+                   min-width: 86px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stratum-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .stratum-chip { background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-dim);
+                  padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+
+  .glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  .gloss { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .gloss dt { font-weight: 600; font-size: 14.5px; margin-bottom: 4px; }
+  .gloss dt .also { color: var(--ink-faint); font-weight: 400; font-size: 12.5px; }
+  .gloss dd { margin: 0; color: var(--ink-dim); font-size: 14px; }
+
+  footer { padding: 46px 0 70px; color: var(--ink-faint); font-size: 13.5px; }
+  footer a { margin-right: 18px; }
+
+  @media (max-width: 980px) {
+    .grid-2, .grid-3, .stats, #rule-toggles, .story, .glossary { grid-template-columns: 1fr; display: block; }
+    .stats .stat, .story .story-card { margin-bottom: 10px; }
+    .grid-2 > *, .grid-3 > * { margin-bottom: 16px; }
+    h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body class="mode-plain">
+
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="eyebrow">Canon</div>
+      <div class="mode-switch" id="mode-switch">
+        <button data-mode="plain" class="active">Plain English</button>
+        <button data-mode="tech">Technical</button>
+      </div>
+      <span class="mode-hint">changes the wording, not the numbers</span>
+    </div>
+
+    <h1 class="plain-only">Can this crew member fly this flight?<br>And can you prove why.</h1>
+    <h1 class="tech-only">A rules engine that can tell you<br>what it needs, and what it did.</h1>
+
+    <div class="plain-only">
+      <p class="lede">
+        Every time a planner puts a crew member on a flight, something has to decide
+        whether that is legal. Rest, hours flown, licences, who else is on board.
+        Airlines run those checks through a rules system.
+      </p>
+      <p class="lede">
+        Canon is a replacement for that system. It is built around three things the
+        current one cannot do: work out for itself what information it needs, show
+        its working for every answer, and tell you exactly when a rule last changed
+        and who changed it.
+      </p>
+    </div>
+
+    <div class="tech-only">
+      <p class="lede">
+        Crew rostering legality, without the licence fee. Canon derives its own
+        payload contract from the rules by static analysis, refuses undeclared
+        coupling between rules, explains every decision at rule granularity, and
+        keeps a tamper evident record of what was deployed when.
+      </p>
+    </div>
+
+    <p class="hero-note">
+      Everything below is worked out live in your browser from the actual rules and
+      the actual data. Nothing here is a screenshot and no figure is typed in by
+      hand. Change the settings and the numbers change with them.
+    </p>
+
+    <p class="hero-note">
+      <strong>Independent project.</strong> Not affiliated with, endorsed by, or
+      derived from any employer's systems. Built from public sources. Every rule,
+      operator, flight, aircraft and person on this page is invented; the duty and
+      rest limits are shaped like published regulation and are not a copy of it.
+    </p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-rules">0</div>
+        <div class="stat-cap">rules loaded</div>
+        <div class="stat-sub plain-only">Each one is a single check, like "rest before duty must be at least 12 hours".</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-strata">0</div>
+        <div class="stat-cap plain-only">rounds of checking</div>
+        <div class="stat-cap tech-only">isolation strata</div>
+        <div class="stat-sub plain-only">Rules in the same round cannot see each other's answers, so their order never matters.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-fields">0</div>
+        <div class="stat-cap plain-only">facts the rules need</div>
+        <div class="stat-cap tech-only">fields the rules read</div>
+        <div class="stat-sub plain-only">Worked out by reading the rules. Nobody wrote this list.</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-root">-</div>
+        <div class="stat-cap plain-only">rulebook fingerprint</div>
+        <div class="stat-cap tech-only">ruleset merkle root</div>
+        <div class="stat-sub plain-only">Change one character in one rule and this changes. It is how you prove which rulebook was live.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="plain-only">
+  <div class="wrap">
+    <h2>One decision, start to finish</h2>
+    <p class="sub">
+      It helps to have a specific case in mind. Here is one, and here is where the
+      current setup struggles with it.
+    </p>
+
+    <div class="story">
+      <div class="story-card">
+        <div class="story-step">Step 1</div>
+        <p>A planner puts Captain Okonjo on flight ZQ4207 tomorrow morning. Five sectors,
+          a long day, and she has not adjusted to the local time zone yet.</p>
+      </div>
+      <div class="story-card problem">
+        <div class="story-step">Step 2 &middot; problem</div>
+        <p>The rostering system sends the rules everything it holds: her whole crew
+          record, the duty plan, the flight, every other crew member on board.
+          Most of it is never looked at, and it all has to travel.</p>
+      </div>
+      <div class="story-card">
+        <div class="story-step">Step 3</div>
+        <p>The rules answer. In this case: not legal. The duty is 14 and a half hours
+          and the most she is allowed today is 11.</p>
+      </div>
+      <div class="story-card problem">
+        <div class="story-step">Step 4 &middot; problem</div>
+        <p>Six months later somebody asks why that roster was built the way it was.
+          Which rule said so? Was it the same rule we have now? Nobody can say.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="label">What Canon changes</div>
+      <p>
+        Step 2 gets smaller, because Canon works out from the rules themselves exactly
+        which facts are needed and asks only for those. Step 4 becomes a lookup,
+        because every answer keeps a record of what it looked at and which rule
+        decided, and every rule change is logged in a way nobody can quietly edit.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier plain-only">What it was built against</span>
+      Seven recurring problems, and what each one turns into
+    </h2>
+    <p class="sub plain-only">
+      This was not designed as a general purpose product. It was designed against
+      the set of problems that long-lived rules systems tend to accumulate. Anyone
+      who has maintained one for a decade will recognise them.
+    </p>
+    <p class="sub tech-only">
+      This is not a general theory of rules engines. It is a response to the
+      failure modes that long lived business rules deployments reliably develop.
+    </p>
+
+    <table class="problems">
+      <thead><tr><th></th><th>The recurring problem</th><th>What it becomes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="n">1</td>
+          <td>The message sent to the rules is large and getting larger, and it shows in how long a roster takes to build</td>
+          <td class="fix">
+            <span class="plain-only">Canon reads its own rules and works out the short list of facts they actually use. Everything else stops being sent.</span>
+            <span class="tech-only">A projection derived by static analysis of the rules. It contains what the rules read, and nothing else.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">2</td>
+          <td>The way it is built makes it hard to send only what is needed</td>
+          <td class="fix">
+            <span class="plain-only">Nobody keeps that short list up to date, because nobody writes it. It is produced from the rules every time, so it cannot fall out of step with them.</span>
+            <span class="tech-only">Nobody maintains the field list. It is generated, so it cannot drift from the rules.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">3</td>
+          <td>The data arrives shaped the wrong way: everything about one person, when some rules need one detail about everybody on the flight</td>
+          <td class="fix">
+            <span class="plain-only">A rule can simply say "the rank of everyone on this flight" and that is a normal request, fetched in one go. It stops being a special case people work around.</span>
+            <span class="tech-only">Collection traversal is part of the path grammar. <code>flight.roster[*].rank</code> is an ordinary fact path.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">4</td>
+          <td>Rules quietly depend on other rules, and the people writing rules are not in step with the people wiring them up</td>
+          <td class="fix">
+            <span class="plain-only">If a rule uses another rule's answer it has to say so, in writing, in the rule. The system checks the claim, refuses circular ones, and groups rules into rounds that cannot see each other.</span>
+            <span class="tech-only">Coupling must be declared, is checked against the syntax tree, is refused if cyclic, and is sorted into strata that provably cannot see one another.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">5</td>
+          <td>Commercial rules engines are expensive to licence</td>
+          <td class="fix">
+            <span class="plain-only">This is a small piece of software your own team owns, with no licence and no vendor.</span>
+            <span class="tech-only">A Python library with no runtime dependencies outside the standard library.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">6</td>
+          <td>When something looks wrong, finding the rule responsible is hard</td>
+          <td class="fix">
+            <span class="plain-only">Every answer comes with a receipt: which rules were considered, which were skipped and why, what each one looked at, and what it concluded. Press "why" on any result below.</span>
+            <span class="tech-only">Every decision carries a trace. <code>decision.explain(code)</code> walks it backwards through the derivations.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="n">7</td>
+          <td>Working out which release broke a rule is hard</td>
+          <td class="fix">
+            <span class="plain-only">Every rule has a fingerprint, every release records them all, and every deployment is logged in a chain that shows if anyone edits the past. One command names the release, the date and the person.</span>
+            <span class="tech-only">Content hash per rule, manifest per release, hash chained ledger per environment. One command names the release, the date and the person.</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>The rounds of checking, worked out from the rules on this page</h3>
+    <p class="sub plain-only" style="margin-bottom:14px">
+      Canon reads the rules and sorts them into rounds. Round one is everything that
+      can be worked out from the raw facts. Round two is everything that needs an
+      answer from round one, and so on. Within a round, no rule can see any other
+      rule's answer, so nothing depends on the order they happen to run in.
+    </p>
+    <div class="panel" id="strata-map"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier">Problems 1, 2 and 3</span>
+      <span class="plain-only">Only ask for what you actually use</span>
+      <span class="tech-only">The payload contract is an output, not an input</span>
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        Below is the list of facts these rules need, worked out by reading the rules
+        rather than by running them. Switch rules off and the list gets shorter.
+        Change the airline and one airline's private rule stops asking for its
+        private data. Move the date forward and a rule that is not law yet stops
+        asking for anything at all.
+      </p>
+      <div class="callout">
+        <div class="label">Why this matters</div>
+        <p>
+          Today somebody has to decide by hand what to put in the message, and that
+          decision goes stale the moment a rule changes. Here nobody decides. The
+          list is a by-product of the rules, so it is always right, and everything
+          not on it is weight the network does not have to carry.
+        </p>
+      </div>
+    </div>
+
+    <p class="sub tech-only">
+      Switch rules off and watch the contract shrink. Change the client and watch a
+      tenant's fields disappear. Change the date and watch a rule that is not yet in
+      force stop asking for data. The list below is generated by walking the rules
+      with a resolver that returns nothing, which is the same walk that evaluates them.
+    </p>
+
+    <div class="controls">
+      <div class="control">
+        <label for="contract-client">airline</label>
+        <select id="contract-client">
+          <option value="">all airlines</option>
+          <option value="AIRLINE_A" selected>AIRLINE_A</option>
+          <option value="AIRLINE_B">AIRLINE_B</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="contract-date">date the rules apply on</label>
+        <select id="contract-date">
+          <option value="2026-08-14" selected>14 Aug 2026</option>
+          <option value="2026-09-15">15 Sep 2026 (after the night duty change)</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="contract-scenario">measure against this assignment</label>
+        <select id="contract-scenario">
+          <option value="legal">Clean assignment</option>
+          <option value="fdp_breach">Long unacclimatised duty</option>
+          <option value="composition">Roster composition</option>
+          <option value="qualifications">ETOPS sector</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="callout result plain-only" id="contract-plain-box">
+      <div class="label">In plain terms</div>
+      <p id="contract-plain">Working it out...</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3 style="margin-top:0">Rules in play</h3>
+        <p class="muted plain-only" style="font-size:12.5px;margin-top:-4px">
+          Untick any rule to see the list of needed facts shrink. Green rules are the
+          ones that need something about every crew member on the flight.
+        </p>
+        <div id="rule-toggles"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">What that costs to send</h3>
+        <div class="kv"><span class="k">rules that apply here</span><span class="v" id="contract-rules">0</span></div>
+        <div class="kv"><span class="k plain-only">facts the rules need</span><span class="k tech-only">fields in the contract</span><span class="v" id="contract-fields">0</span></div>
+        <div class="kv"><span class="k plain-only">of those, about everyone on board</span><span class="k tech-only">of which vertical slice fields</span><span class="v" id="contract-vertical">0</span></div>
+        <div class="bars">
+          <div class="bar"><div class="fill full"></div><div class="cap">what gets sent today: <span id="contract-full">-</span></div></div>
+          <div class="bar"><div class="fill trim" id="contract-bar-trimmed"></div><div class="cap">what Canon needs: <span id="contract-trimmed">-</span></div></div>
+        </div>
+        <div class="kv"><span class="k">no longer sent</span><span class="v" id="contract-saved">-</span></div>
+        <p class="muted" style="font-size:12.5px;margin-top:14px">
+          <span class="plain-only">This is measured on the real assignment you picked above, not estimated. The same measurement can be run over a week of real traffic before anybody changes anything.</span>
+          <span class="tech-only">The comparison uses <code>Projection.select</code> on the real fact document. It is the same function you would run over a week of captured production traffic in phase zero of the migration, before changing anything.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px">
+      <div class="panel">
+        <h3 style="margin-top:0">The shape of what is needed</h3>
+        <p class="muted plain-only" style="font-size:12.5px;margin-top:-4px">
+          Indented lines are details of the line above. A name ending in
+          <code>[*]</code> means "this, for every person on the flight".
+        </p>
+        <div id="contract-tree"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Every fact, and which rule asked for it</h3>
+        <p class="muted plain-only" style="font-size:12.5px;margin-top:-4px">
+          If you ever want to remove a field from the message, this tells you who
+          would notice.
+        </p>
+        <div id="contract-paths"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier">Problems 4 and 6</span>
+      <span class="plain-only">Run a real assignment, and see the working</span>
+      <span class="tech-only">Run it, and watch it explain itself</span>
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        Pick an assignment and Canon decides whether it is legal. The panel on the
+        right is the working: every rule it considered, the ones it skipped and why,
+        the exact facts each one looked at, and what each concluded. Press
+        <strong>why</strong> next to any finding to follow the chain back to its cause.
+      </p>
+      <div class="callout">
+        <div class="label">Why this matters</div>
+        <p>
+          When a planner says "the system will not let me do this and I do not
+          understand why", this is the answer, in one place, without anybody reading
+          code. And because the same record is kept for every decision, the answer is
+          still available months later.
+        </p>
+      </div>
+    </div>
+
+    <p class="sub tech-only">
+      Rules in a stratum cannot observe one another. The only channel between rules is
+      the <code>derived</code> namespace, and every use of it is declared. The trace
+      below is the engine's own record: what was considered, what was skipped and why,
+      which fields each rule looked at, and what it concluded.
+    </p>
+
+    <div class="controls">
+      <div class="control">
+        <label for="eval-scenario">assignment</label>
+        <select id="eval-scenario">
+          <option value="fdp_breach" selected>Long unacclimatised duty, five sectors</option>
+          <option value="legal">Clean assignment</option>
+          <option value="composition">The whole roster is the problem</option>
+          <option value="qualifications">ETOPS sector, lapsed paperwork</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="eval-client">airline</label>
+        <select id="eval-client">
+          <option value="AIRLINE_A" selected>AIRLINE_A</option>
+          <option value="AIRLINE_B">AIRLINE_B</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="eval-date">date</label>
+        <select id="eval-date">
+          <option value="2026-08-14" selected>14 Aug 2026</option>
+          <option value="2026-09-15">15 Sep 2026</option>
+        </select>
+      </div>
+    </div>
+    <p class="muted" id="eval-blurb" style="font-size:13.5px;margin-top:-8px"></p>
+
+    <div class="callout result plain-only">
+      <div class="label">In plain terms</div>
+      <p id="eval-plain">Working it out...</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <h3 style="margin-top:0">Verdict</h3>
+        <div id="eval-verdict" class="verdict">-</div>
+        <div class="kv"><span class="k plain-only">time taken</span><span class="k tech-only">evaluation time</span><span class="v" id="eval-time">-</span></div>
+        <div class="kv"><span class="k plain-only">fingerprint of this answer</span><span class="k tech-only">output digest</span><span class="v" id="eval-digest">-</span></div>
+        <p class="muted plain-only" style="font-size:12px;margin-top:10px">
+          The fingerprint lets you prove later that a decision has not been altered,
+          without keeping a copy of anyone's personal data.
+        </p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Data actually touched</h3>
+        <div class="kv"><span class="k plain-only">facts asked for</span><span class="k tech-only">fields in the contract</span><span class="v" id="eval-planned">-</span></div>
+        <div class="kv"><span class="k plain-only">facts actually read</span><span class="k tech-only">fields actually read</span><span class="v" id="eval-read">-</span></div>
+        <div class="kv"><span class="k plain-only">sources it had to go to</span><span class="k tech-only">roots fetched</span><span class="v" id="eval-roots">-</span></div>
+        <p class="muted" style="font-size:12px;margin-top:10px">
+          <span class="plain-only">The first number is the worst case: what the rules could need. The second is what this particular decision actually used, because a rule that fails its first check stops there and asks for nothing more.</span>
+          <span class="tech-only">Planning does not short circuit, so the contract is the worst case. Evaluation does, so a guard that fails on its first term costs one field read.</span>
+        </p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">
+          <span class="plain-only">Working figures</span>
+          <span class="tech-only">Derived values</span>
+        </h3>
+        <div id="eval-derived"></div>
+        <p class="muted" style="font-size:12px;margin-top:10px">
+          <span class="plain-only">Several rules each propose a maximum duty length for this day. The rulebook says once, in writing, that the strictest one wins. That is better than relying on the rules running in a particular order.</span>
+          <span class="tech-only">Several rules compete to set the duty limit. The combine policy is declared once in the ruleset header rather than encoded in evaluation order.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px">
+      <div class="panel">
+        <h3 style="margin-top:0">Findings</h3>
+        <div id="eval-findings"></div>
+        <h3>Why</h3>
+        <p class="muted plain-only" style="font-size:12.5px;margin-top:-4px">
+          Read top to bottom. The first line is the rule that raised the finding.
+          The lines under it are the rules whose answers it relied on.
+        </p>
+        <div id="eval-explain"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">
+          <span class="plain-only">The working</span>
+          <span class="tech-only">Trace</span>
+        </h3>
+        <div id="eval-trace"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier plain-only">Who writes the rules</span>
+      One rule, three ways to write it
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        A rules system is only as good as the people who can safely change it. The same
+        rule is shown three ways below. All three end up identical inside the engine,
+        so this is a choice about who does the writing and the reviewing, not about
+        what the software does.
+      </p>
+      <div class="callout">
+        <div class="label">The short recommendation</div>
+        <p>
+          Spreadsheet-style tables for the licence and qualification checks, because
+          there are dozens of them, they all look the same, and non-programmers should
+          be able to read and change them. Structured text for the fatigue rules,
+          because there are fewer of them, they involve real arithmetic, and they need
+          to be read carefully in review. Program code only where it earns its place.
+        </p>
+      </div>
+    </div>
+
+    <p class="sub tech-only">
+      All three compile to the same rule object and produce the same content hash, so
+      the choice is about who writes and reviews rules, not about what the engine does.
+      The trade offs, including where each one hurts, are in
+      <a href="https://github.com/peterdsouza247/canon/blob/main/docs/authoring-comparison.md">docs/authoring-comparison.md</a>.
+    </p>
+
+    <div class="tabs">
+      <button class="tab" data-kind="yaml">Structured text</button>
+      <button class="tab" data-kind="python">Program code</button>
+      <button class="tab" data-kind="table">Spreadsheet table</button>
+    </div>
+    <pre class="code" id="authoring-code"></pre>
+
+    <div class="grid-3" style="margin-top:16px">
+      <div class="panel">
+        <h3 style="margin-top:0">Structured text</h3>
+        <p class="muted" style="font-size:13px">
+          <span class="plain-only">Reads almost like a form. A rostering manager can follow it in review even if they would not want to write one from scratch. Any dependency on another rule has to be written down, which is the point.</span>
+          <span class="tech-only">Readable in review by people who do not write code. Coupling between rules is mandatory to declare. Recommended for the flight time limitation and composition rules, which are few, intricate and interdependent.</span>
+        </p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Program code</h3>
+        <p class="muted" style="font-size:13px">
+          <span class="plain-only">Best tools for a developer, and never actually run: Canon reads the code and converts it. Only a very narrow shape is allowed. No "otherwise" branches, because two possible outcomes should be two separate rules that can be switched off independently.</span>
+          <span class="tech-only">Full editor support. Compiled from the syntax tree and never executed. Accepts a narrow shape only: a docstring, then one <code>if</code>, then emits and sets. No <code>else</code>, because two outcomes are two rules.</span>
+        </p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Spreadsheet table</h3>
+        <p class="muted" style="font-size:13px">
+          <span class="plain-only">One row per rule, one column per condition. Closest to how the business already thinks about qualification matrices, and the only one a non-programmer can confidently edit. The risk: an empty cell means "no condition here", and an empty cell looks like nothing at all.</span>
+          <span class="tech-only">Closest to how business users of a commercial BRMS already think, and the best fit for the qualification matrices. Watch the ratio of <code>=</code> escape hatch cells. Past about one in ten, those rows want moving to YAML.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier plain-only">Changing systems safely</span>
+      <span class="plain-only">Run both engines side by side and compare</span>
+      <span class="tech-only">Migration: shadow run against the incumbent</span>
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        Nobody swaps the system that decides whether a crew member may legally fly
+        because a test suite went green. They swap it because they have seen both
+        systems answer thousands of real cases and understood every disagreement.
+      </p>
+      <p class="sub">
+        Below, Canon is run against a stand-in for the current system over generated
+        traffic. The stand-in has three faults deliberately built in, of the kind that
+        survive for years unnoticed: a duty limit that never gets reduced for extra
+        take-offs and landings, a running-total check that trips an hour too early, and
+        a rule that was written down and never actually built. Canon should disagree.
+        The useful part is that the report says which rule explains each disagreement.
+      </p>
+      <div class="callout">
+        <div class="label">Expect an uncomfortable finding</div>
+        <p>
+          On real traffic this exercise usually shows that the current system has been
+          getting something wrong for years. That conversation is worth having, and it
+          is worth having before anybody has committed to the migration rather than
+          after.
+        </p>
+      </div>
+    </div>
+
+    <p class="sub tech-only">
+      Nobody swaps this engine on the strength of a green test suite. They swap it on
+      evidence. Below, Canon runs against a stand in for the incumbent over generated
+      traffic. The stand in has three planted faults of the kind that survive for
+      years: a flat duty limit that never reduces for sectors, a cumulative check that
+      fires an hour early, and a rule that was specified and never implemented. The
+      report finds all three and names the rule responsible for each.
+    </p>
+
+    <div class="controls">
+      <div class="control">
+        <label for="shadow-count">assignments to compare</label>
+        <input type="number" id="shadow-count" value="500" min="50" max="4000" step="50">
+      </div>
+      <button id="shadow-run">Run both and compare</button>
+    </div>
+
+    <div id="shadow-results" class="hidden">
+      <div class="callout result plain-only">
+        <div class="label">In plain terms</div>
+        <p id="shadow-plain"></p>
+      </div>
+
+      <div class="grid-3">
+        <div class="stat"><div class="stat-num" id="shadow-total">0</div><div class="stat-cap">assignments compared</div></div>
+        <div class="stat"><div class="stat-num" id="shadow-agreement">0%</div><div class="stat-cap">both systems agreed</div></div>
+        <div class="stat"><div class="stat-num" id="shadow-latency">0</div><div class="stat-cap">typical time per decision</div></div>
+      </div>
+
+      <div class="grid-3" style="margin-top:16px">
+        <div class="panel">
+          <h3 style="margin-top:0">How they differed</h3>
+          <div id="shadow-status"></div>
+          <p class="muted plain-only" style="font-size:12px;margin-top:10px">
+            "missing in canon" means the old system flagged something Canon did not.
+            "extra in canon" means Canon flagged something the old system missed. Those
+            are very different problems and it matters which one you have.
+          </p>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Which checks differed</h3>
+          <div id="shadow-codes"></div>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Most likely rules behind it</h3>
+          <div id="shadow-suspects"></div>
+          <p class="muted" style="font-size:12px;margin-top:10px">
+            <span class="plain-only">A rule that shows up in nearly every disagreement and almost never in the agreements is the one to look at. In a rulebook of several hundred, that shortlist is the difference between an afternoon and a fortnight.</span>
+            <span class="tech-only">Ranked by lift: how much more often a rule fires on diverging cases than on agreeing ones. In a ruleset of several hundred this ranking is the difference between an afternoon and a fortnight.</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier plain-only">Before you change a rule</span>
+      <span class="plain-only">What would this change actually do?</span>
+      <span class="tech-only">What-if: change a rule, replay a month, count what moves</span>
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        Somebody proposes tightening the rules. Today that gets approved on judgement:
+        a few people read the change and agree it looks contained. Then a roster build
+        produces four hundred new refusals on a Tuesday morning, and it gets reverted by
+        people who still do not know which part of the change caused it.
+      </p>
+      <p class="sub">
+        Instead, replay the proposed change over real past decisions and count what
+        would have moved. The proposal below is four edits, chosen so each one shows a
+        different way this normally goes wrong.
+      </p>
+    </div>
+
+    <p class="sub tech-only">
+      Shadow running asks whether the new engine agrees with the old one. This asks the
+      question people ask every week instead: if we make this change, what happens to
+      real decisions? The proposal below is four edits. Two are meant to bite, one
+      changes a rule's content hash and should move nothing at all, and one is a new
+      rule that reads like a modest tightening.
+    </p>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Proposal: autumn fatigue package</h3>
+      <div class="kv">
+        <span class="k">FTL-002 &middot; reduction per extra sector</span>
+        <span class="v">30 min to 45 min</span>
+      </div>
+      <div class="kv">
+        <span class="k">FTL-020 &middot; minimum rest before duty</span>
+        <span class="v">plus a half hour margin</span>
+      </div>
+      <div class="kv">
+        <span class="k">FTL-040 &middot; display order only</span>
+        <span class="v">should change nothing</span>
+      </div>
+      <div class="kv">
+        <span class="k">CREW-006 &middot; brand new rule</span>
+        <span class="v">commander needs 500h on type</span>
+      </div>
+      <p class="muted plain-only" style="font-size:12.5px;margin-top:12px">
+        Two of these are meant to have an effect. One only changes the order findings
+        are displayed in and should have none, though it still counts as a changed rule.
+        The fourth reads like a modest tightening. Watch what it does.
+      </p>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <label for="whatif-count">past decisions to replay</label>
+        <input type="number" id="whatif-count" value="500" min="50" max="4000" step="50">
+      </div>
+      <button id="whatif-run">Replay the proposed change</button>
+    </div>
+
+    <div id="whatif-results" class="hidden">
+      <div class="callout result plain-only">
+        <div class="label">In plain terms</div>
+        <p id="whatif-plain"></p>
+      </div>
+
+      <div class="grid-3">
+        <div class="stat"><div class="stat-num" id="whatif-total">0</div><div class="stat-cap">decisions replayed</div></div>
+        <div class="stat"><div class="stat-num" id="whatif-moved">0</div><div class="stat-cap">would come out differently</div></div>
+        <div class="stat"><div class="stat-num" id="whatif-rate">0%</div><div class="stat-cap">share of all decisions</div></div>
+      </div>
+
+      <div class="grid-3" style="margin-top:16px">
+        <div class="panel">
+          <h3 style="margin-top:0">How they moved</h3>
+          <div id="whatif-kinds"></div>
+          <p class="muted plain-only" style="font-size:12px;margin-top:10px">
+            "newly blocked" is the one that generates complaints. "newly allowed" is the
+            one that generates regulatory questions. "derived only" is a near miss: this
+            change did not bite today but would on a slightly different roster.
+          </p>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Which findings moved</h3>
+          <div id="whatif-codes"></div>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Caused by</h3>
+          <div id="whatif-blame"></div>
+          <p class="muted" style="font-size:12px;margin-top:10px">
+            <span class="plain-only">FTL-010 will appear here, and FTL-010 was not touched by this proposal. It compares the duty length against a limit that FTL-002 works out, and FTL-002 did change. Canon knows that relationship because the rule wrote it down, so it says "reached via FTL-002" rather than leaving you to guess.</span>
+            <span class="tech-only">FTL-010 will appear here and FTL-010 did not change. It reads the limit FTL-002 computes, and the dependency graph already knows that, so the report says "via FTL-002" instead of leaving you to work it out.</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="panel">
+          <h3 style="margin-top:0">Changed, but moved nothing</h3>
+          <div id="whatif-inert"></div>
+          <p class="muted" style="font-size:12px;margin-top:10px">
+            <span class="plain-only">Read this before anything else. A change that appears here has evidence behind it. "We looked at five hundred real decisions and this edit moved none of them" is a much better thing to say in a review than "it looks fine to me". Rules changed by this proposal:</span>
+            <span class="tech-only">Read this before the flip list. A change that appears here has evidence behind it, which is a stronger position than a change nobody can say anything about. Rules changed in this proposal:</span>
+            <code id="whatif-changed"></code>
+          </p>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Never fired at all</h3>
+          <div id="whatif-dead"></div>
+          <p class="muted" style="font-size:12px;margin-top:10px">
+            <span class="plain-only">Rules that did not trigger once across every decision replayed. Either they are dead weight nobody needs, or they have quietly stopped working. Both are worth knowing, and on an old rulebook this list is usually longer than anyone expects.</span>
+            <span class="tech-only">Either dead weight or a rule that has quietly stopped matching anything. On a long lived estate this list is usually longer than anyone expects, and it costs nothing to produce once every decision carries a trace.</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>
+      <span class="qualifier">Problem 7</span>
+      <span class="plain-only">Which release changed this rule, and can anyone edit the record</span>
+      <span class="tech-only">Tamper evidence: which deployment changed this rule</span>
+    </h2>
+
+    <div class="plain-only">
+      <p class="sub">
+        Every rule gets a fingerprint calculated from what it says. Comments and titles
+        are left out on purpose, so tidying up the wording of a rule does not make it
+        look like the rule changed. Every release records the fingerprints of all its
+        rules. Every deployment is written into a logbook where each entry contains a
+        summary of the one before it.
+      </p>
+      <p class="sub">
+        That last part is what makes the logbook hard to falsify. Editing a past entry
+        breaks the chain, and the break is visible immediately. Press the red button
+        below and watch it happen. The fingerprints are real, calculated in your browser.
+      </p>
+    </div>
+
+    <p class="sub tech-only">
+      Every rule has a content hash over its semantics only, so editing a comment does
+      not churn the diff. Every release is a manifest of those hashes with a Merkle
+      root. Every deployment is an entry that carries the previous entry's hash. The
+      hashes below are real SHA-256, computed in your browser.
+    </p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3 style="margin-top:0">Deployment logbook</h3>
+        <div id="ledger-list"></div>
+        <div id="ledger-verify" class="verify good"></div>
+        <div style="margin-top:14px;display:flex;gap:10px">
+          <button class="danger" id="ledger-tamper">Secretly edit a past entry</button>
+          <button class="ghost" id="ledger-rebuild">Start again</button>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin-top:10px">
+          <span class="plain-only">The button rewrites who deployed the second release and which version it was, exactly as someone covering their tracks would. The check below it fails straight away, and says why.</span>
+          <span class="tech-only">Editing entry two rewrites who deployed it and which version went out. The chain detects it because the stored entry hash no longer matches its contents, and because entry three's back link no longer resolves.</span>
+        </p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Trace a rule's history</h3>
+        <div class="control" style="margin-bottom:12px">
+          <label for="blame-rule">pick a rule</label>
+          <select id="blame-rule" style="width:100%"></select>
+        </div>
+        <div id="blame-result"></div>
+        <p class="muted" style="font-size:12.5px;margin-top:12px">
+          <span class="plain-only">Only the releases where this rule genuinely changed are listed. Find the last one before the complaints started and you have the release, the date, the person, and exactly what went out.</span>
+          <span class="tech-only">Only the deployments in which this rule's content actually changed. Take the last entry before the bug reports started and you have the release, the timestamp, the person and the exact hash that went out.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The words on this page</h2>
+    <p class="sub">
+      A rules engine attracts jargon. Here is the short version of each term, in the
+      sense it is used above.
+    </p>
+    <div class="glossary">
+      <dl class="gloss">
+        <dt>Rule</dt>
+        <dd>One check, with one outcome. "Rest before duty must be at least twelve hours."
+          Deliberately small, so it can be switched off, versioned and blamed on its own.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Finding <span class="also">also: violation</span></dt>
+        <dd>What a rule produces when it triggers. Either hard, meaning the assignment is
+          not legal, or soft, meaning it is legal but somebody should look at it.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Fact</dt>
+        <dd>One piece of information a rule can look at. A crew member's hours last month,
+          a flight's departure time, whether the destination needs a special briefing.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Payload <span class="also">also: the message</span></dt>
+        <dd>Everything the rostering system sends over to the rules for one decision.
+          Today it contains far more than the rules use, and that is problem one.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Contract <span class="also">technically: projection</span></dt>
+        <dd>The list of facts the rules actually need. Canon produces it by reading its
+          own rules, so it is never out of date and nobody maintains it by hand.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Vertical slice</dt>
+        <dd>One detail about every person on a flight, rather than everything about one
+          person. "The rank of everyone on board." Some rules cannot be written without it.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Working figure <span class="also">technically: derived value</span></dt>
+        <dd>A number one rule calculates for other rules to use, like the maximum duty
+          length allowed today. A rule that uses one has to say so in writing.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Round <span class="also">technically: stratum</span></dt>
+        <dd>A group of rules that cannot see each other's answers. Everything in round one
+          runs first, then round two, and inside a round the order never matters.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Trace <span class="also">the working, the receipt</span></dt>
+        <dd>The record kept for every decision: which rules were considered, which were
+          skipped and why, what each looked at, what each concluded.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Fingerprint <span class="also">technically: content hash</span></dt>
+        <dd>A short code calculated from what a rule says. Change the rule and the code
+          changes. Change only a comment and it does not.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>Shadow run</dt>
+        <dd>Running the new system alongside the old one on real traffic, throwing the new
+          answer away, and recording every disagreement.</dd>
+      </dl>
+      <dl class="gloss">
+        <dt>What-if replay</dt>
+        <dd>Taking a proposed rule change, running it against decisions already made, and
+          counting how many would come out differently.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What this deliberately will not do</h2>
+    <p class="sub">
+      <span class="plain-only">A rules system is as much about what it refuses as what it allows. Every refusal below is a decision somebody could disagree with, so they are listed rather than buried.</span>
+      <span class="tech-only">A rules engine is as much about what it refuses as what it allows.</span>
+    </p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3 style="margin-top:0">Refused by design</h3>
+        <div class="kv">
+          <span class="k plain-only">"otherwise" branches, loops, scratch variables inside a rule</span>
+          <span class="k tech-only">else, elif, loops, local variables in a rule</span>
+          <span class="v">two outcomes are two rules</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">a rule asking what today's date is</span>
+          <span class="k tech-only">now(), random, anything non deterministic</span>
+          <span class="v">the date is supplied as a fact</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">rule order changing the answer</span>
+          <span class="k tech-only">priority affecting logic</span>
+          <span class="v">it orders output only</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">arbitrary program code inside a rule</span>
+          <span class="k tech-only">eval, exec, imports, lambdas, f-strings</span>
+          <span class="v">a small fixed vocabulary</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">using another rule's answer without saying so</span>
+          <span class="k tech-only">reading a derived fact without declaring it</span>
+          <span class="v">refuses to load</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">claiming a dependency you do not actually use</span>
+          <span class="k tech-only">declaring a read you do not use</span>
+          <span class="v">also refuses to load</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">two rules setting the same figure with no tie-break</span>
+          <span class="k tech-only">two rules writing one value with no policy</span>
+          <span class="v">refuses to load</span>
+        </div>
+        <div class="kv">
+          <span class="k plain-only">rules that depend on each other in a circle</span>
+          <span class="k tech-only">a dependency cycle</span>
+          <span class="v">refuses to load, naming them</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Honest limits</h3>
+        <p class="muted" style="font-size:13.5px">
+          <span class="plain-only">Canon checks every rule that applies, one at a time. For a few hundred rules answering one question at a time that is the right trade, and it is why the engine is small enough to read in a sitting. A rulebook in the tens of thousands, with lots of shared conditions, would want a different design.</span>
+          <span class="tech-only">There is no RETE network and no incremental matching. For a per assignment legality check over a few hundred rules that is the right trade, and it is why the engine is small enough to read in a sitting. For a ruleset in the tens of thousands with heavily shared subconditions, a matching network would win.</span>
+        </p>
+        <p class="muted" style="font-size:13.5px">
+          <span class="plain-only">The converter that reads rules out of a commercial engine handles the common shapes and refuses the awkward ones rather than guessing. On a real estate of rules, expect a genuine pile of manual work left over. Guessing would be worse.</span>
+          <span class="tech-only">The importer for business action language handles the common shapes and refuses collection quantifiers and unbracketed mixed precedence rather than guessing. Expect a real manual residue on a real estate of rules.</span>
+        </p>
+        <p class="muted" style="font-size:13.5px">
+          <span class="plain-only">The logbook proves nobody has edited the past, but the current signing method means anyone who can check a signature could also forge one. For a regulator-facing record that needs upgrading, and the upgrade is well understood.</span>
+          <span class="tech-only">Signing uses HMAC from the standard library, which means anybody who can verify can also forge. A regulated deployment wants asymmetric signatures with the key in a KMS, and the chain head published where the rules team cannot rewrite it.</span>
+        </p>
+        <p class="muted" style="font-size:13.5px">
+          <span class="plain-only">The duty and rest numbers used throughout this demo are made up. They are shaped like a real regulation. They are not one, and nothing should be flown on them.</span>
+          <span class="tech-only">The flight time limitation numbers in the examples are illustrative. They are shaped like a real regulation. They are not one.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/peterdsouza247/canon">Repository</a>
+    <a href="https://github.com/peterdsouza247/canon/blob/main/docs/architecture.md">How it works</a>
+    <a href="https://github.com/peterdsouza247/canon/blob/main/docs/migration-playbook.md">Migration playbook</a>
+    <a href="https://github.com/peterdsouza247/canon/blob/main/docs/what-if.md">What-if replay</a>
+    <a href="https://github.com/peterdsouza247/canon/blob/main/docs/authoring-comparison.md">Who writes the rules</a>
+    <a href="https://github.com/peterdsouza247/canon/tree/main/docs/adr">Decisions and trade-offs</a>
+    <p style="margin-top:18px">
+      This page runs a JavaScript version of the engine so it needs no server and no
+      installation. The Python implementation in <code>src/canon</code> is the real one.
+    </p>
+  </div>
+</footer>
+
+<script src="engine.js"></script>
+<script src="rules.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
