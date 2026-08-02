@@ -8,14 +8,24 @@ version = "0.1.0"
 description = "A stateless, self explaining rules engine with generated payload contracts and tamper evident deployments"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-keywords = ["rules-engine", "crew-rostering", "odm", "aviation", "provenance"]
+# Source available, not open source. Free for evaluation, development, testing
+# and shadow running; a commercial licence is required to use the output to make
+# real decisions. Becomes Apache-2.0 on the change date. See LICENSE and
+# LICENSING.md.
+license = { file = "LICENSE" }
+keywords = ["rules-engine", "crew-rostering", "aviation", "provenance",
+            "business-rules", "brms"]
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Interpreters",
+    # Deliberately no "License :: OSI Approved" classifier. The Business Source
+    # License is not an OSI approved licence and claiming otherwise would be
+    # false. PyPI will reject an upload that pairs a licence file with a
+    # contradictory classifier, which is the correct behaviour.
+    "Private :: Do Not Upload",
 ]
 
 # The engine itself has no runtime dependencies. That is deliberate: it is the

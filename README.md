@@ -13,6 +13,13 @@ Live demo: **https://peterdsouza247.github.io/canon/**
 > The numbers are shaped like real regulation and are not a copy of it, and
 > nothing here should be flown on.
 
+> **Licence.** [Business Source License 1.1](LICENSE). Source available, not
+> open source. Free to read, fork, modify, test, benchmark and shadow run
+> against your current engine on real production traffic. A commercial licence
+> is required to use its output to make, approve or record a real decision, or
+> to ship it inside something you sell. Becomes Apache-2.0 on 2 August 2030.
+> Plain English version and how to buy: [LICENSING.md](LICENSING.md).
+
 ---
 
 ## Why
@@ -236,6 +243,31 @@ demo/               the GitHub Pages demo, a single self contained page
 docs/               architecture, authoring comparison, migration playbook, ADRs
 tests/              pytest suite
 ```
+
+---
+
+## Licence
+
+[Business Source License 1.1](LICENSE), becoming Apache-2.0 on 2 August 2030.
+
+Free, with no need to ask: reading, forking, modifying, running locally or in
+CI, measuring your payloads, importing an existing ruleset, benchmarking, and
+shadow running against your current engine on real production traffic and real
+production infrastructure. Every phase of the
+[migration playbook](docs/migration-playbook.md) up to and including the shadow
+run is free, because every one of those phases produces evidence and no
+decisions.
+
+Requires a commercial licence: using Canon's output to make, approve, publish or
+record a real decision, and shipping Canon inside a product or service you sell.
+
+Plain English summary, the reasoning behind where the line sits, and how to buy:
+**[LICENSING.md](LICENSING.md)**. Commercial enquiries:
+peterdsouza.personal@gmail.com.
+
+Canon is source available, not open source, and the difference is worth stating
+rather than blurring. Outside code contributions are not currently accepted;
+[CONTRIBUTING.md](CONTRIBUTING.md) explains why and what is useful instead.
 
 ---
 
